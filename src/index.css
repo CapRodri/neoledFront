@@ -1,0 +1,187 @@
+@import url('https://fonts.googleapis.com/css2?family=Gotham:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide number input arrows and prevent scroll changes */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.number-input-no-scroll {
+  -moz-appearance: textfield;
+}
+
+.number-input-no-scroll::-webkit-outer-spin-button,
+.number-input-no-scroll::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* NEOLED Design System - Colores actualizados */
+
+@layer base {
+  :root {
+    /* NEOLED Brand Colors */
+    --neoled-primary: 195 95% 25%;        /* Más claro: #0A5D7A (aproximado) */
+    --neoled-secondary: 45 92% 47%;       /* #E9C109 */
+    --neoled-grey-90: 0 0% 10%;
+    --neoled-grey-50: 0 0% 50%;
+    --neoled-white: 0 0% 100%;
+    
+    /* Sistema de colores basado en la marca */
+    --background: 0 0% 100%;
+    --foreground: 195 95% 25%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 195 95% 25%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 195 95% 25%;
+
+    --primary: 195 95% 25%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 45 92% 47%;
+    --secondary-foreground: 195 95% 25%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 50%;
+
+    --accent: 45 92% 47%;
+    --accent-foreground: 195 95% 25%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 96%;
+    --ring: 195 95% 25%;
+    
+    --radius: 0.75rem;
+    
+    /* Gradientes */
+    --gradient-primary: linear-gradient(135deg, hsl(195 95% 25%), hsl(195 95% 35%));
+    --gradient-secondary: linear-gradient(135deg, hsl(45 92% 47%), hsl(45 92% 57%));
+    --gradient-hero: linear-gradient(135deg, hsl(195 95% 25%) 0%, hsl(195 95% 35%) 50%, hsl(45 92% 47%) 100%);
+    
+    /* Sombras */
+    --shadow-neoled: 0 10px 30px -10px hsl(195 95% 25% / 0.3);
+    --shadow-glow: 0 0 40px hsl(45 92% 47% / 0.4);
+    
+    /* Transiciones */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-gotham;
+  }
+}
+
+@layer components {
+  .btn-neoled {
+    @apply bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold 
+           transition-all duration-300 hover:shadow-lg hover:scale-105 
+           hover:bg-primary/90 active:scale-95;
+  }
+  
+  .btn-neoled-secondary {
+    @apply bg-secondary text-secondary-foreground px-6 py-3 rounded-xl font-bold 
+           transition-all duration-300 hover:shadow-lg hover:scale-105 
+           hover:bg-secondary/90 active:scale-95;
+  }
+  
+  .float-animation {
+    @apply animate-bounce;
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .gradient-neoled {
+    background: var(--gradient-hero);
+  }
+  
+  .product-hover {
+    @apply transition-all duration-300 hover:scale-105 hover:shadow-xl;
+  }
+  
+  .glow-effect {
+    filter: drop-shadow(0 0 20px hsl(var(--secondary) / 0.5));
+    transition: filter 0.3s ease;
+  }
+  
+  .glow-effect:hover {
+    filter: drop-shadow(0 0 30px hsl(var(--secondary) / 0.8));
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@layer utilities {
+  .animate-fade-in-up { animation: fadeInUp 0.6s ease-out; }
+  .animate-scale-in { animation: scaleIn 0.4s ease-out; }
+}
