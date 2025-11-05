@@ -23,7 +23,7 @@ export function ProductCarousel({ products, title, variant = "default", onAddToC
     }
   });
   
-const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -41,7 +41,7 @@ const [canScrollPrev, setCanScrollPrev] = useState(false);
     setCanScrollNext(emblaApi.canScrollNext());
   }, [emblaApi]);
 
-useEffect(() => {
+  useEffect(() => {
     if (!emblaApi) return;
     onSelect();
     emblaApi.on("reInit", onSelect);
@@ -69,13 +69,12 @@ useEffect(() => {
 
   if (products.length === 0) return null;
 
-return (
+  return (
     <div className="space-y-4">
       <div className={cn(
         "flex items-center",
         variant === "offers" && "bg-gradient-to-r from-primary/10 to-secondary/10 rounded-xl p-3"
-      )}
-      >
+      )}>
         <h3 className="text-2xl md:text-3xl font-black text-primary flex items-center gap-3">
           {title}
           {variant === "offers" && (
@@ -123,7 +122,13 @@ return (
             {products.map((product) => (
               <div
                 key={product.id}
-                className="flex-none w-[calc(50%-8px)] md:w-[calc(50%-8px)] lg:w-[calc(33.333%-11px)]"
+                className={cn(
+                  "flex-none",
+                  // Tamaños responsivos para mantener proporción 512x512
+                  "w-[280px] h-[480px]", // Móvil: tamaño fijo
+                  "md:w-[320px] md:h-[520px]", // Tablet: tamaño fijo
+                  "lg:w-[350px] lg:h-[730px]" // Desktop: tamaño fijo
+                )}
               >
                 <ProductCard
                   product={product}

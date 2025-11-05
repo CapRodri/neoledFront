@@ -65,6 +65,25 @@ export function ProductCard({ product, onAddToCart, onViewDetails }: ProductCard
       .trim();
   };
 
+  // Función para obtener imágenes con tamaño fijo de 512x512
+  const getResizedImageUrl = (imageUrl: string): string => {
+    if (!imageUrl || imageUrl === '/placeholder-product.jpg') {
+      return '/placeholder-product.jpg';
+    }
+    
+    // Si es una imagen base64, retornar tal cual
+    if (imageUrl.startsWith('data:image')) {
+      return imageUrl;
+    }
+    
+    // Si es una URL externa, puedes agregar parámetros de resizing si tu backend lo soporta
+    // Por ejemplo, si usas un servicio de imágenes como Cloudinary o similar
+    // return `${imageUrl}?width=512&height=512&fit=crop`;
+    
+    // Por ahora, retornar la imagen original
+    return imageUrl;
+  };
+
   // Intercalar entre variantes cada 5 segundos solo si hay más de una variante para mostrar
   useEffect(() => {
     if (allDisplayVariants.length <= 1) return;
@@ -79,10 +98,12 @@ export function ProductCard({ product, onAddToCart, onViewDetails }: ProductCard
   // Obtener la variante actual
   const currentVariant = allDisplayVariants[currentVariantIndex];
   
-  // Obtener imágenes de la variante actual
+  // Obtener imágenes de la variante actual con tamaño fijo
   const currentImages = currentVariant.images && currentVariant.images.length > 0 
-    ? currentVariant.images 
-    : (product.images && product.images.length > 0 ? product.images : ['/placeholder-product.jpg']);
+    ? currentVariant.images.map(img => getResizedImageUrl(img))
+    : (product.images && product.images.length > 0 
+        ? product.images.map(img => getResizedImageUrl(img))
+        : ['/placeholder-product.jpg']);
 
   // Manejar navegación manual de imágenes
   useEffect(() => {
@@ -121,13 +142,25 @@ export function ProductCard({ product, onAddToCart, onViewDetails }: ProductCard
       onMouseLeave={() => setIsHovered(false)}
     >
       <CardHeader className="p-0 relative overflow-hidden">
-        <div className="relative aspect-square bg-muted/30">
-          {/* Image Carousel */}
-          <img
-            src={currentImages[currentImageIndex]}
-            alt={`${currentVariant.name} - imagen ${currentImageIndex + 1}`}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          />
+        <div className="relative aspect-square bg-muted/30 w-full h-64 md:h-80">
+          {/* Image Carousel con tamaño fijo */}
+          <div className="w-full h-full flex items-center justify-center bg-muted/30">
+            <img
+              src={currentImages[currentImageIndex]}
+              alt={`${currentVariant.name} - imagen ${currentImageIndex + 1}`}
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center'
+              }}
+              onError={(e) => {
+                // Fallback si la imagen no carga
+                e.currentTarget.src = '/placeholder-product.jpg';
+              }}
+            />
+          </div>
           
           {/* Navigation arrows for multiple images - Mejorados para móvil */}
           {currentImages.length > 1 && (
@@ -202,7 +235,7 @@ export function ProductCard({ product, onAddToCart, onViewDetails }: ProductCard
         </div>
       </CardHeader>
 
-      <CardContent className="p-3 md:p-4 space-y-2 md:space-y-3">
+      <CardContent className="p-3 md:p-4 space-y-2 md:space-y-3 flex-1">
         <div className="space-y-1">
           <CardTitle className="text-sm md:text-lg font-bold text-foreground group-hover:text-primary transition-colors duration-300 line-clamp-2">
             {currentVariant.name}
@@ -258,28 +291,28 @@ export function ProductCard({ product, onAddToCart, onViewDetails }: ProductCard
             </div>
           </div>
         )}
-
-        {/* Price */}
-        <div className="pt-1">
-          <div className="text-lg md:text-2xl font-black text-primary">
-            Bs. {currentVariant.price.toFixed(2)}
-          </div>
-        </div>
       </CardContent>
 
-      <CardFooter className="p-3 md:p-4 pt-2 mt-auto">
-        {/* View Product Button */}
-        <Button
-          onClick={(e) => {
-            e.stopPropagation();
-            onViewDetails(product);
-          }}
-          className="w-full btn-neoled-secondary group text-xs md:text-sm h-9 md:h-10 py-1 md:py-2"
-        >
-          <Eye className="h-4 w-4 mr-0 md:mr-2 transition-transform duration-300 group-hover:scale-110" />
-          <span className="hidden md:inline">Ver Producto</span>
-          <span className="md:hidden">Ver</span>
-        </Button>
+      <CardFooter className="p-3 md:p-4 pt-2 mt-auto border-t bg-muted/20">
+        <div className="w-full flex flex-col space-y-2">
+          {/* Price */}
+          <div className="text-lg md:text-2xl font-black text-primary text-center">
+            Bs. {currentVariant.price.toFixed(2)}
+          </div>
+          
+          {/* View Product Button */}
+          <Button
+            onClick={(e) => {
+              e.stopPropagation();
+              onViewDetails(product);
+            }}
+            className="w-full btn-neoled-secondary group text-xs md:text-sm h-9 md:h-10 py-1 md:py-2"
+          >
+            <Eye className="h-4 w-4 mr-0 md:mr-2 transition-transform duration-300 group-hover:scale-110" />
+            <span className="hidden md:inline">Ver Producto</span>
+            <span className="md:hidden">Ver</span>
+          </Button>
+        </div>
       </CardFooter>
     </Card>
   );
