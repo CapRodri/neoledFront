@@ -970,7 +970,7 @@ const buscarCotizacionesPorCliente = async (query?: string) => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead colSpan={3}>Descripción</TableHead>
+                        <TableHead colSpan={3}>Producto</TableHead>
                         <TableHead className="text-center">Cantidad</TableHead>
                         <TableHead className="text-right">Valor Unitario</TableHead>
                         <TableHead className="text-right">Valor Total</TableHead>
@@ -982,9 +982,6 @@ const buscarCotizacionesPorCliente = async (query?: string) => {
                           <TableCell colSpan={3}>
                             <div>
                               <p className="font-medium">{item.productoNombre} - {item.color_disenio}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {item.productoDescripcion}
-                              </p>
                             </div>
                           </TableCell>
                           <TableCell className="text-center">{item.cantidad}</TableCell>
