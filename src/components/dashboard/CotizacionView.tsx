@@ -935,68 +935,68 @@ const buscarCotizacionesPorCliente = async (query?: string) => {
           </Card>
         </div>
 
-        {/* Vista para desktop */}
-        <div className="hidden md:block space-y-6">
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Teléfono</TableHead>
-                      <TableHead>Dirección</TableHead>
-                      <TableHead>Tipo de Pago</TableHead>
-                      <TableHead>Vigencia</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>{fechaHoy}</TableCell>
-                      <TableCell>{datosCliente.nombre}</TableCell>
-                      <TableCell>{datosCliente.telefono}</TableCell>
-                      <TableCell className="max-w-xs truncate">{datosCliente.direccion}</TableCell>
-                      <TableCell>
-                        {datosCliente.tipoPago === "contra-entrega" && "Contra Entrega"}
-                        {datosCliente.tipoPago === "pago-adelantado" && "Pago por Adelantado"}
-                        {datosCliente.tipoPago === "mitad-adelanto" && "Mitad de Adelanto"}
-                      </TableCell>
-                      <TableCell>{datosCliente.vigencia} días (hasta {fechaVigencia.toLocaleDateString('es-BO')})</TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead colSpan={3}>Descripción</TableHead>
-                      <TableHead className="text-center">Cantidad</TableHead>
-                      <TableHead className="text-right">Valor Unitario</TableHead>
-                      <TableHead className="text-right">Valor Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {cotizacionItems.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell colSpan={3}>
-                          <div>
-                            <p className="font-medium">{item.productoNombre} - {item.color_disenio}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {item.productoDescripcion}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">{item.cantidad}</TableCell>
-                        <TableCell className="text-right">Bs {formatBs(item.precio_venta)}</TableCell>
-                        <TableCell className="text-right font-medium">Bs {formatBs(item.precio_venta * item.cantidad)}</TableCell>
+          {/* Vista para desktop */}
+          <div className="hidden md:block space-y-6">
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Fecha</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Teléfono</TableHead>
+                        <TableHead>Dirección</TableHead>
+                        <TableHead>Tipo de Pago</TableHead>
+                        <TableHead>Vigencia</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>{fechaHoy}</TableCell>
+                        <TableCell>{datosCliente.nombre}</TableCell>
+                        <TableCell>{datosCliente.telefono}</TableCell>
+                        <TableCell className="max-w-xs truncate">{datosCliente.direccion}</TableCell>
+                        <TableCell>
+                          {datosCliente.tipoPago === "contra-entrega" && "Contra Entrega"}
+                          {datosCliente.tipoPago === "pago-adelantado" && "Pago por Adelantado"}
+                          {datosCliente.tipoPago === "mitad-adelanto" && "Mitad de Adelanto"}
+                        </TableCell>
+                        <TableCell>{datosCliente.vigencia} días (hasta {fechaVigencia.toLocaleDateString('es-BO')})</TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead colSpan={3}>Descripción</TableHead>
+                        <TableHead className="text-center">Cantidad</TableHead>
+                        <TableHead className="text-right">Valor Unitario</TableHead>
+                        <TableHead className="text-right">Valor Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {cotizacionItems.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell colSpan={3}>
+                            <div>
+                              <p className="font-medium">{item.productoNombre} - {item.color_disenio}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {item.productoDescripcion}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">{item.cantidad}</TableCell>
+                          <TableCell className="text-right">Bs {formatBs(item.precio_venta)}</TableCell>
+                          <TableCell className="text-right font-medium">Bs {formatBs(item.precio_venta * item.cantidad)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
 
           {/* Resumen de Pagos debajo de la tabla */}
           <div className="flex justify-end">
