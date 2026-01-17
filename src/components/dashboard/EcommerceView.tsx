@@ -1,4 +1,4 @@
-// src/components/dashboard/EcommerceView.tsx - VERSIÓN FINAL CORREGIDA
+// src/components/dashboard/EcommerceView.tsx - VERSIÓN COMPLETA CON BÚSQUEDA OPTIMIZADA
 import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,9 +48,11 @@ export function EcommerceView() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const productSearchInputRef = useRef<HTMLInputElement>(null);
   const lastSearchQueryRef = useRef<string>("");
+  const isSearchingRef = useRef<boolean>(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Debounce para búsqueda
-  const debouncedProductSearchTerm = useDebounce(productSearchTerm, 300);
+  // Debounce para búsqueda de productos
+  const debouncedProductSearchTerm = useDebounce(productSearchTerm, 500);
 
   // Cargar solo carruseles al inicio
   useEffect(() => {
@@ -86,29 +88,43 @@ export function EcommerceView() {
     loadInitialData();
   }, []);
 
-  // Búsqueda de productos solo cuando se escribe
+  // Búsqueda de productos optimizada (igual que en VenderView)
   useEffect(() => {
-    const performSearch = async () => {
-      if (debouncedProductSearchTerm.trim().length >= 2 && debouncedProductSearchTerm !== lastSearchQueryRef.current) {
-        lastSearchQueryRef.current = debouncedProductSearchTerm;
-        setSearchLoading(true);
-        try {
-          const results = await searchProducts(debouncedProductSearchTerm);
-          setSearchResults(results);
-        } catch (error) {
-          console.error("Error searching products:", error);
-          setSearchResults([]);
-        } finally {
-          setSearchLoading(false);
-        }
-      } else if (debouncedProductSearchTerm.trim().length < 2) {
-        lastSearchQueryRef.current = "";
-        setSearchResults([]);
-      }
-    };
-
-    performSearch();
+    if (debouncedProductSearchTerm.trim().length >= 2 && debouncedProductSearchTerm !== lastSearchQueryRef.current) {
+      performProductSearch(debouncedProductSearchTerm);
+    } else if (debouncedProductSearchTerm.trim().length < 2) {
+      setSearchResults([]);
+      lastSearchQueryRef.current = "";
+    }
   }, [debouncedProductSearchTerm]);
+
+  const performProductSearch = async (query: string) => {
+    // Si ya se está buscando, cancelar la búsqueda anterior
+    if (isSearchingRef.current) {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    }
+    
+    isSearchingRef.current = true;
+    lastSearchQueryRef.current = query;
+    setSearchLoading(true);
+    
+    // Usar timeout para evitar múltiples búsquedas rápidas
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const results = await searchProducts(query);
+        setSearchResults(results);
+      } catch (error) {
+        console.error("Error searching products:", error);
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+        isSearchingRef.current = false;
+        searchTimeoutRef.current = null;
+      }
+    }, 100); // Pequeña pausa para evitar búsquedas excesivas
+  };
 
   // Cargar productos completos cuando se abre diálogo de creación
   useEffect(() => {
@@ -218,17 +234,39 @@ export function EcommerceView() {
     }
   };
 
-  // Búsqueda
+  // Búsqueda optimizada (igual que en VenderView)
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
 
   const handleProductSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setProductSearchTerm(e.target.value);
+    const value = e.target.value;
+    setProductSearchTerm(value);
+    
+    // Mantener el foco (para mejor UX)
+    if (productSearchInputRef.current) {
+      const currentPosition = e.target.selectionStart;
+      setTimeout(() => {
+        if (productSearchInputRef.current) {
+          productSearchInputRef.current.focus();
+          if (currentPosition !== null) {
+            productSearchInputRef.current.setSelectionRange(currentPosition, currentPosition);
+          }
+        }
+      }, 0);
+    }
   };
 
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') e.preventDefault();
+    // Prevenir que Enter recargue la página
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
+  };
+
+  const handleSearchMouseDown = (e: React.MouseEvent) => {
+    // Prevenir que otros elementos interfieran con el foco
+    e.stopPropagation();
   };
 
   // Operaciones
@@ -482,6 +520,7 @@ export function EcommerceView() {
             value={productSearchTerm}
             onChange={handleProductSearchChange}
             onKeyDown={handleSearchKeyDown}
+            onMouseDown={handleSearchMouseDown}
             className="pl-8"
             disabled={isAnyProcessing()}
           />
@@ -667,6 +706,7 @@ export function EcommerceView() {
                 value={searchTerm}
                 onChange={handleSearchChange}
                 onKeyDown={handleSearchKeyDown}
+                onMouseDown={handleSearchMouseDown}
                 className="pl-8"
                 disabled={isAnyProcessing()}
               />
