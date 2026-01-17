@@ -1,4 +1,5 @@
 import axios from "axios";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Interfaces para el backend (igual que en ventas)
@@ -260,6 +261,15 @@ export const searchProductos = async (query: string): Promise<Producto[]> => {
     return response.data.map(mapBackendProduct);
   } catch (error) {
     console.error("Error searching products:", error);
+    
+    // Manejo de errores mejorado
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 500) {
+        console.error("Server error details:", error.response.data);
+        throw new Error("Error del servidor al buscar productos. Por favor, intente nuevamente.");
+      }
+    }
+    
     throw new Error("No se pudieron buscar los productos");
   }
 };
