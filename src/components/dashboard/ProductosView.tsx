@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogT
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, Edit, Package, Trash2, Eye, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Search, Edit, Package, Trash2, Eye, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { FormularioProductos } from "./FormularioProductos";
 import {
@@ -19,6 +19,8 @@ import {
   getCategorias,
   getTipos,
   getProductos,
+  buscarProductos,
+  getAllProductos,
   deleteProducto,
   updateStockVariante,
   Producto
@@ -31,7 +33,7 @@ interface StockFormData {
   varianteNombre: string;
 }
 
-// Componente para el carrusel de imágenes
+// Componente para el carrusel de imágenes (se mantiene igual)
 interface ImageCarouselProps {
   images: string[];
   productName: string;
@@ -39,9 +41,9 @@ interface ImageCarouselProps {
 }
 
 function ImageCarousel({ images, productName, className = "" }: ImageCarouselProps) {
+  // ... (código del carrusel se mantiene igual)
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Si no hay imágenes, mostrar placeholder
   if (!images || images.length === 0) {
     return (
       <div className={`flex items-center justify-center bg-gray-100 rounded ${className}`}>
@@ -50,7 +52,6 @@ function ImageCarousel({ images, productName, className = "" }: ImageCarouselPro
     );
   }
 
-  // Navegación automática cada 3 segundos
   useEffect(() => {
     if (images.length <= 1) return;
 
@@ -77,7 +78,6 @@ function ImageCarousel({ images, productName, className = "" }: ImageCarouselPro
 
   return (
     <div className={`relative overflow-hidden rounded ${className}`}>
-      {/* Imagen principal */}
       <div className="relative aspect-square w-full">
         <img
           src={images[currentIndex]}
@@ -88,7 +88,6 @@ function ImageCarousel({ images, productName, className = "" }: ImageCarouselPro
           }}
         />
         
-        {/* Controles de navegación */}
         {images.length > 1 && (
           <>
             <button
@@ -109,7 +108,6 @@ function ImageCarousel({ images, productName, className = "" }: ImageCarouselPro
         )}
       </div>
 
-      {/* Indicadores */}
       {images.length > 1 && (
         <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-1">
           {images.map((_, index) => (
@@ -125,7 +123,6 @@ function ImageCarousel({ images, productName, className = "" }: ImageCarouselPro
         </div>
       )}
 
-      {/* Contador de imágenes */}
       {images.length > 1 && (
         <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
           {currentIndex + 1} / {images.length}
@@ -133,6 +130,23 @@ function ImageCarousel({ images, productName, className = "" }: ImageCarouselPro
       )}
     </div>
   );
+}
+
+// Hook para debounce
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 }
 
 export function ProductosView() {
@@ -143,7 +157,9 @@ export function ProductosView() {
   const [currentStockProduct, setCurrentStockProduct] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Producto[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [searching, setSearching] = useState(false);
 
   // Estados para las opciones desde la API
   const [ubicaciones, setUbicaciones] = useState<string[]>([]);
@@ -153,15 +169,6 @@ export function ProductosView() {
   const [tamaños, setTamaños] = useState<string[]>([]);
   const [categorias, setCategorias] = useState<string[]>([]);
   const [tiposProducto, setTiposProducto] = useState<string[]>([]);
-
-  // Cargar búsqueda desde inventario si existe
-  useEffect(() => {
-    const searchFromInventory = sessionStorage.getItem('searchProductName');
-    if (searchFromInventory) {
-      setSearchTerm(searchFromInventory);
-      sessionStorage.removeItem('searchProductName');
-    }
-  }, []);
 
   const userRole = localStorage.getItem("userRole") || "admin";
   const isAssistant = userRole === "Asistente";
@@ -174,9 +181,11 @@ export function ProductosView() {
   });
   const { toast } = useToast();
 
-  // Cargar datos desde la API
+  const debouncedSearchTerm = useDebounce(searchTerm, 1000);
+
+  // Cargar datos básicos (opciones para selects)
   useEffect(() => {
-    const loadData = async () => {
+    const loadBasicData = async () => {
       try {
         setLoading(true);
         const [
@@ -186,8 +195,7 @@ export function ProductosView() {
           wattsData,
           tamanosData,
           categoriasData,
-          tiposData,
-          productosData
+          tiposData
         ] = await Promise.all([
           getUbicaciones(),
           getColoresDiseno(),
@@ -195,8 +203,7 @@ export function ProductosView() {
           getWatts(),
           getTamanos(),
           getCategorias(),
-          getTipos(),
-          getProductos()
+          getTipos()
         ]);
 
         setUbicaciones(ubicacionesData.map(item => item.nombre));
@@ -206,9 +213,8 @@ export function ProductosView() {
         setTamaños(tamanosData.map(item => item.nombre));
         setCategorias(categoriasData.map(item => item.nombre));
         setTiposProducto(tiposData.map(item => item.nombre));
-        setProducts(productosData);
       } catch (error) {
-        console.error("Error cargando datos:", error);
+        console.error("Error cargando datos básicos:", error);
         toast({
           title: "Error",
           description: "No se pudieron cargar los datos necesarios",
@@ -219,22 +225,75 @@ export function ProductosView() {
       }
     };
 
-    loadData();
+    loadBasicData();
   }, [toast]);
 
-  const filteredProducts = useMemo(() => {
-    if (!searchTerm) return [];
-    return products.filter(product =>
-      product.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.categorias.some(cat => cat.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      product.tipos.some(tipo => tipo.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [searchTerm, products]);
+  // Cargar búsqueda desde inventario si existe
+  useEffect(() => {
+    const searchFromInventory = sessionStorage.getItem('searchProductName');
+    if (searchFromInventory) {
+      setSearchTerm(searchFromInventory);
+      performSearch(searchFromInventory);
+      sessionStorage.removeItem('searchProductName');
+    }
+  }, []);
 
-  const productsToShow = showAllProducts ? products : filteredProducts;
+  // Efecto para búsqueda con debounce
+  useEffect(() => {
+    if (debouncedSearchTerm.trim().length >= 2) {
+      performSearch(debouncedSearchTerm);
+    } else if (debouncedSearchTerm.trim().length === 0 && !showAllProducts) {
+      setProducts([]);
+    }
+  }, [debouncedSearchTerm, showAllProducts]);
+
+  // Función para realizar búsqueda
+  const performSearch = async (query: string) => {
+    setSearching(true);
+    try {
+      const results = await buscarProductos(query);
+      setProducts(results);
+    } catch (error) {
+      console.error("Error buscando productos:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los productos",
+        variant: "destructive"
+      });
+      setProducts([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // Función para cargar todos los productos
+  const handleShowAllProducts = async () => {
+    const newShowAll = !showAllProducts;
+    setShowAllProducts(newShowAll);
+    
+    if (newShowAll) {
+      setLoadingAll(true);
+      try {
+        const allProducts = await getAllProductos();
+        setProducts(allProducts);
+      } catch (error) {
+        console.error("Error cargando todos los productos:", error);
+        toast({
+          title: "Error",
+          description: "No se pudieron cargar todos los productos",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingAll(false);
+      }
+    } else {
+      setProducts([]);
+      setSearchTerm("");
+    }
+  };
 
   const handleEdit = (product: Producto) => {
-    if (isAssistant) return; // Asistentes no pueden editar
+    if (isAssistant) return;
     setEditingProduct(product);
     setIsFormOpen(true);
   };
@@ -264,8 +323,13 @@ export function ProductosView() {
       });
 
       // Recargar productos para actualizar la vista
-      const productosData = await getProductos();
-      setProducts(productosData);
+      if (showAllProducts) {
+        const allProducts = await getAllProductos();
+        setProducts(allProducts);
+      } else if (searchTerm.trim().length >= 2) {
+        const results = await buscarProductos(searchTerm);
+        setProducts(results);
+      }
 
       setIsStockFormOpen(false);
       setStockFormData({
@@ -284,7 +348,7 @@ export function ProductosView() {
   };
 
   const handleDelete = async (productId: number, productName: string) => {
-    if (isAssistant) return; // Asistentes no pueden eliminar
+    if (isAssistant) return;
     
     try {
       await deleteProducto(productId);
@@ -295,8 +359,13 @@ export function ProductosView() {
       });
 
       // Recargar productos
-      const productosData = await getProductos();
-      setProducts(productosData);
+      if (showAllProducts) {
+        const allProducts = await getAllProductos();
+        setProducts(allProducts);
+      } else if (searchTerm.trim().length >= 2) {
+        const results = await buscarProductos(searchTerm);
+        setProducts(results);
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -315,8 +384,13 @@ export function ProductosView() {
       });
 
       // Recargar productos
-      const productosData = await getProductos();
-      setProducts(productosData);
+      if (showAllProducts) {
+        const allProducts = await getAllProductos();
+        setProducts(allProducts);
+      } else if (searchTerm.trim().length >= 2) {
+        const results = await buscarProductos(searchTerm);
+        setProducts(results);
+      }
 
       setIsFormOpen(false);
       setEditingProduct(null);
@@ -338,7 +412,6 @@ export function ProductosView() {
     return variantes.reduce((sum, variant) => sum + variant.stock, 0);
   };
 
-  // Obtener todas las imágenes de todas las variantes de un producto
   const getAllProductImages = useCallback((product: Producto): string[] => {
     const allImages: string[] = [];
     product.variantes.forEach(variante => {
@@ -346,13 +419,13 @@ export function ProductosView() {
         allImages.push(...variante.imagenes);
       }
     });
-    return allImages.slice(0, 10); // Limitar a 10 imágenes máximo
+    return allImages.slice(0, 10);
   }, []);
 
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-lg">Cargando productos...</div>
+        <div className="text-lg">Cargando configuraciones...</div>
       </div>
     );
   }
@@ -446,13 +519,25 @@ export function ProductosView() {
 
       <Card>
         <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <CardTitle>Productos ({products.length})</CardTitle>
+          <CardTitle>
+            {showAllProducts 
+              ? `Todos los Productos (${products.length})`
+              : searchTerm.trim().length >= 2 
+                ? `Resultados de búsqueda (${products.length})`
+                : "Productos"
+            }
+          </CardTitle>
           <Button
             variant="outline"
-            onClick={() => setShowAllProducts(!showAllProducts)}
+            onClick={handleShowAllProducts}
             className="flex items-center gap-2 w-full md:w-auto"
+            disabled={loadingAll}
           >
-            <Eye className="h-4 w-4" />
+            {loadingAll ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
             {showAllProducts ? "Ocultar productos" : "Ver todos los productos"}
           </Button>
         </CardHeader>
@@ -460,190 +545,80 @@ export function ProductosView() {
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar productos por nombre, categoría o tipo..."
+              placeholder="Buscar productos por nombre, categoría o tipo... (mín. 2 caracteres)"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
+              disabled={showAllProducts}
             />
+            {searching && (
+              <div className="absolute right-3 top-3">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
           </div>
 
-          {(searchTerm || showAllProducts) && productsToShow.length > 0 && (
+          {loadingAll ? (
+            <div className="text-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+              <p className="text-muted-foreground mt-2">Cargando todos los productos...</p>
+            </div>
+          ) : (
             <>
-              {/* Vista móvil - Cards */}
-              <div className="block md:hidden space-y-3 w-full overflow-hidden">
-                {productsToShow.map((product) => {
-                  const totalStock = getTotalStock(product.variantes);
-                  const allImages = getAllProductImages(product);
+              {(searchTerm.trim().length >= 2 || showAllProducts) && products.length > 0 && (
+                <>
+                  {/* Vista móvil - Cards */}
+                  <div className="block md:hidden space-y-3 w-full overflow-hidden">
+                    {products.map((product) => {
+                      const totalStock = getTotalStock(product.variantes);
+                      const allImages = getAllProductImages(product);
 
-                  return (
-                    <Card key={product.idproducto} className="p-3 w-full">
-                      <div className="space-y-2 w-full">
-                        <div className="flex items-start gap-3 w-full">
-                          {/* Carrusel de imágenes */}
-                          <div className="flex-shrink-0 w-24 h-24">
-                            <ImageCarousel
-                              images={allImages}
-                              productName={product.nombre}
-                              className="w-24 h-24"
-                            />
-                          </div>
-                          
-                          <div className="flex-1 min-w-0 overflow-hidden">
-                            <h3 className="font-medium text-sm leading-tight line-clamp-2 break-words">{product.nombre}</h3>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {product.categorias.map((categoria, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs px-1.5 py-0.5 max-w-full truncate">
-                                  {categoria}
-                                </Badge>
-                              ))}
-                              {product.tipos.map((tipo, index) => (
-                                <Badge key={index} variant="outline" className="text-xs px-1.5 py-0.5 max-w-full truncate">
-                                  {tipo}
-                                </Badge>
-                              ))}
-                            </div>
-                            <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
-                              {product.descripcion}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="text-xs text-muted-foreground w-full overflow-hidden">
-                          <p className="truncate"><span className="font-medium">Ubi:</span> {product.ubicacion}</p>
-                        </div>
-
-                        <div className="border-t pt-2 w-full overflow-hidden">
-                          <p className="text-xs font-medium mb-1">Variantes & Stock:</p>
-                          <div className="space-y-1 w-full">
-                            {product.variantes.map((variante, index) => (
-                              <div key={index} className="text-xs border-b border-border/50 pb-0.5 last:border-0 w-full overflow-hidden">
-                                <div className="font-medium text-xs truncate">{variante.nombre_variante}</div>
-                                <div className="text-muted-foreground text-xs truncate">
-                                  {variante.color_disenio} + {variante.color_luz} | {variante.watt} - {variante.tamano}
-                                </div>
-                                <div className="text-primary text-xs">Stock: {variante.stock} | Bs {variante.precio_venta.toFixed(2)}</div>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleIncreaseStock(product, variante)}
-                                  className="h-6 text-xs mt-1"
-                                >
-                                  <Package className="h-3 w-3 mr-1" />
-                                  Añadir Stock
-                                </Button>
-                              </div>
-                            ))}
-                            <div className="text-xs font-semibold border-t pt-0.5 flex justify-between mt-1 w-full">
-                              <span>Total Stock:</span>
-                              <span>{totalStock} u.</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-1.5 pt-1 w-full">
-                          {!isAssistant && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(product)}
-                              className="flex-1 h-8 text-xs min-w-0"
-                            >
-                              <Edit className="h-3 w-3 mr-1" />
-                              <span className="truncate">Editar</span>
-                            </Button>
-                          )}
-                          {!isAssistant && (
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="outline" size="sm" className="flex-1 h-8 text-xs min-w-0">
-                                  <Trash2 className="h-3 w-3 mr-1 text-destructive" />
-                                  <span className="truncate">Eliminar</span>
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Esta acción no se puede deshacer. Esto eliminará permanentemente el producto "{product.nombre}".
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(product.idproducto, product.nombre)}>
-                                    Eliminar
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  );
-                })}
-              </div>
-
-              {/* Vista desktop - Tabla */}
-              <div className="hidden md:block border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="min-w-[120px]">Imagen</TableHead>
-                        <TableHead className="min-w-[200px]">Nombre</TableHead>
-                        <TableHead className="min-w-[120px]">Ubicación</TableHead>
-                        <TableHead className="min-w-[250px]">Variantes, Watts & Stock</TableHead>
-                        <TableHead className="text-right min-w-[120px]">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {productsToShow.map((product) => {
-                        const totalStock = getTotalStock(product.variantes);
-                        const allImages = getAllProductImages(product);
-
-                        return (
-                          <TableRow key={product.idproducto}>
-                            <TableCell>
-                              <div className="w-20 h-20">
+                      return (
+                        <Card key={product.idproducto} className="p-3 w-full">
+                          <div className="space-y-2 w-full">
+                            <div className="flex items-start gap-3 w-full">
+                              <div className="flex-shrink-0 w-24 h-24">
                                 <ImageCarousel
                                   images={allImages}
                                   productName={product.nombre}
-                                  className="w-20 h-20"
+                                  className="w-24 h-24"
                                 />
                               </div>
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              <div>
-                                {product.nombre}
-                                <div className="text-xs text-muted-foreground mt-1">
+                              
+                              <div className="flex-1 min-w-0 overflow-hidden">
+                                <h3 className="font-medium text-sm leading-tight line-clamp-2 break-words">{product.nombre}</h3>
+                                <div className="flex flex-wrap gap-1 mt-1">
                                   {product.categorias.map((categoria, index) => (
-                                    <Badge key={index} variant="secondary" className="mr-1 mb-1">
+                                    <Badge key={index} variant="secondary" className="text-xs px-1.5 py-0.5 max-w-full truncate">
                                       {categoria}
                                     </Badge>
                                   ))}
                                   {product.tipos.map((tipo, index) => (
-                                    <Badge key={index} variant="outline" className="mr-1 mb-1">
+                                    <Badge key={index} variant="outline" className="text-xs px-1.5 py-0-5 max-w-full truncate">
                                       {tipo}
                                     </Badge>
                                   ))}
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
                                   {product.descripcion}
                                 </p>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="text-sm text-muted-foreground">{product.ubicacion}</span>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
+                            </div>
+
+                            <div className="text-xs text-muted-foreground w-full overflow-hidden">
+                              <p className="truncate"><span className="font-medium">Ubi:</span> {product.ubicacion}</p>
+                            </div>
+
+                            <div className="border-t pt-2 w-full overflow-hidden">
+                              <p className="text-xs font-medium mb-1">Variantes & Stock:</p>
+                              <div className="space-y-1 w-full">
                                 {product.variantes.map((variante, index) => (
-                                  <div key={index} className="text-xs border-b border-border/50 pb-1 last:border-0">
-                                    <div className="font-medium">{variante.nombre_variante}</div>
-                                    <div className="text-muted-foreground">
+                                  <div key={index} className="text-xs border-b border-border/50 pb-0.5 last:border-0 w-full overflow-hidden">
+                                    <div className="font-medium text-xs truncate">{variante.nombre_variante}</div>
+                                    <div className="text-muted-foreground text-xs truncate">
                                       {variante.color_disenio} + {variante.color_luz} | {variante.watt} - {variante.tamano}
                                     </div>
-                                    <div className="text-primary">Stock: {variante.stock} | Precio: Bs {variante.precio_venta.toFixed(2)}</div>
+                                    <div className="text-primary text-xs">Stock: {variante.stock} | Bs {variante.precio_venta.toFixed(2)}</div>
                                     <Button
                                       variant="outline"
                                       size="sm"
@@ -655,73 +630,197 @@ export function ProductosView() {
                                     </Button>
                                   </div>
                                 ))}
-                                <div className="text-xs font-semibold border-t pt-1 mt-1">
-                                  Total: {totalStock} unidades
+                                <div className="text-xs font-semibold border-t pt-0.5 flex justify-between mt-1 w-full">
+                                  <span>Total Stock:</span>
+                                  <span>{totalStock} u.</span>
                                 </div>
                               </div>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end space-x-2">
-                                {!isAssistant && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleEdit(product)}
-                                  >
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                )}
-                                {!isAssistant && (
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="outline" size="sm">
-                                        <Trash2 className="h-4 w-4 text-destructive" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Esta acción no se puede deshacer. Esto eliminará permanentemente el producto "{product.nombre}".
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDelete(product.idproducto, product.nombre)}>
-                                          Eliminar
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                )}
-                              </div>
-                            </TableCell>
+                            </div>
+
+                            <div className="flex gap-1.5 pt-1 w-full">
+                              {!isAssistant && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEdit(product)}
+                                  className="flex-1 h-8 text-xs min-w-0"
+                                >
+                                  <Edit className="h-3 w-3 mr-1" />
+                                  <span className="truncate">Editar</span>
+                                </Button>
+                              )}
+                              {!isAssistant && (
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="outline" size="sm" className="flex-1 h-8 text-xs min-w-0">
+                                      <Trash2 className="h-3 w-3 mr-1 text-destructive" />
+                                      <span className="truncate">Eliminar</span>
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Esta acción no se puede deshacer. Esto eliminará permanentemente el producto "{product.nombre}".
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                      <AlertDialogAction onClick={() => handleDelete(product.idproducto, product.nombre)}>
+                                        Eliminar
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+
+                  {/* Vista desktop - Tabla */}
+                  <div className="hidden md:block border rounded-lg overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="min-w-[120px]">Imagen</TableHead>
+                            <TableHead className="min-w-[200px]">Nombre</TableHead>
+                            <TableHead className="min-w-[120px]">Ubicación</TableHead>
+                            <TableHead className="min-w-[250px]">Variantes, Watts & Stock</TableHead>
+                            <TableHead className="text-right min-w-[120px]">Acciones</TableHead>
                           </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {products.map((product) => {
+                            const totalStock = getTotalStock(product.variantes);
+                            const allImages = getAllProductImages(product);
+
+                            return (
+                              <TableRow key={product.idproducto}>
+                                <TableCell>
+                                  <div className="w-20 h-20">
+                                    <ImageCarousel
+                                      images={allImages}
+                                      productName={product.nombre}
+                                      className="w-20 h-20"
+                                    />
+                                  </div>
+                                </TableCell>
+                                <TableCell className="font-medium">
+                                  <div>
+                                    {product.nombre}
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      {product.categorias.map((categoria, index) => (
+                                        <Badge key={index} variant="secondary" className="mr-1 mb-1">
+                                          {categoria}
+                                        </Badge>
+                                      ))}
+                                      {product.tipos.map((tipo, index) => (
+                                        <Badge key={index} variant="outline" className="mr-1 mb-1">
+                                          {tipo}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                      {product.descripcion}
+                                    </p>
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <span className="text-sm text-muted-foreground">{product.ubicacion}</span>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="space-y-1">
+                                    {product.variantes.map((variante, index) => (
+                                      <div key={index} className="text-xs border-b border-border/50 pb-1 last:border-0">
+                                        <div className="font-medium">{variante.nombre_variante}</div>
+                                        <div className="text-muted-foreground">
+                                          {variante.color_disenio} + {variante.color_luz} | {variante.watt} - {variante.tamano}
+                                        </div>
+                                        <div className="text-primary">Stock: {variante.stock} | Precio: Bs {variante.precio_venta.toFixed(2)}</div>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() => handleIncreaseStock(product, variante)}
+                                          className="h-6 text-xs mt-1"
+                                        >
+                                          <Package className="h-3 w-3 mr-1" />
+                                          Añadir Stock
+                                        </Button>
+                                      </div>
+                                    ))}
+                                    <div className="text-xs font-semibold border-t pt-1 mt-1">
+                                      Total: {totalStock} unidades
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end space-x-2">
+                                    {!isAssistant && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleEdit(product)}
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                    {!isAssistant && (
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button variant="outline" size="sm">
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Esta acción no se puede deshacer. Esto eliminará permanentemente el producto "{product.nombre}".
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleDelete(product.idproducto, product.nombre)}>
+                                              Eliminar
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    )}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {searchTerm.trim().length >= 2 && !searching && products.length === 0 && (
+                <div className="text-center text-muted-foreground py-8">
+                  No se encontraron productos que coincidan con la búsqueda.
                 </div>
-              </div>
+              )}
+
+              {searchTerm.trim().length < 2 && !showAllProducts && !searching && (
+                <div className="text-center text-muted-foreground py-8">
+                  Ingresa al menos 2 caracteres en el buscador o haz clic en "Ver todos los productos" para mostrar el inventario.
+                </div>
+              )}
+
+              {showAllProducts && products.length === 0 && !loadingAll && (
+                <div className="text-center text-muted-foreground py-8">
+                  No hay productos registrados.
+                </div>
+              )}
             </>
-          )}
-
-          {searchTerm && !showAllProducts && productsToShow.length === 0 && (
-            <div className="text-center text-muted-foreground py-8">
-              No se encontraron productos que coincidan con la búsqueda.
-            </div>
-          )}
-
-          {!searchTerm && !showAllProducts && (
-            <div className="text-center text-muted-foreground py-8">
-              Usa el buscador o haz clic en "Ver todos los productos" para mostrar el inventario.
-            </div>
-          )}
-
-          {products.length === 0 && (
-            <div className="text-center text-muted-foreground py-8">
-              No hay productos registrados. {!isAssistant && "Haz clic en 'Agregar Producto' para comenzar."}
-            </div>
           )}
         </CardContent>
       </Card>

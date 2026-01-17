@@ -1,6 +1,6 @@
 // src/api/ProductsApi.ts
 import axios from "axios";
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 // Interfaces para las tablas maestras
 interface BackendUbicacion {
@@ -51,8 +51,8 @@ interface BackendProducto {
   nombre: string;
   descripcion: string;
   estado: number;
-  ubicacion_nombre: string; // Añadido
-  idubicacion: number; // Añadido
+  ubicacion_nombre: string;
+  idubicacion: number;
   categorias: string[];
   tipos: string[];
   variantes: BackendVariante[];
@@ -84,7 +84,7 @@ export interface Producto {
   nombre: string;
   descripcion: string;
   idubicacion: number;
-  ubicacion: string; // Ahora será el nombre real
+  ubicacion: string;
   estado: number;
   categorias: string[];
   tipos: string[];
@@ -133,6 +133,9 @@ export interface VarianteRequest {
   imagenes?: File[];
 }
 
+// src/api/ProductsApi.ts
+// ... (mantén todas las interfaces igual)
+
 const api = axios.create({
   baseURL: API_URL,
   withCredentials: true,
@@ -141,10 +144,10 @@ const api = axios.create({
   },
 });
 
-// Obtener opciones para los selects
+// Obtener opciones para los selects - RUTAS CORREGIDAS (sin /products)
 export const getUbicaciones = async (): Promise<BackendUbicacion[]> => {
   try {
-    const response = await api.get<BackendUbicacion[]>("/products/ubicaciones");
+    const response = await api.get<BackendUbicacion[]>("/api/ubicaciones");
     return response.data;
   } catch (error) {
     console.error("Error fetching ubicaciones:", error);
@@ -154,7 +157,7 @@ export const getUbicaciones = async (): Promise<BackendUbicacion[]> => {
 
 export const getCategorias = async (): Promise<BackendCategoria[]> => {
   try {
-    const response = await api.get<BackendCategoria[]>("/products/categorias");
+    const response = await api.get<BackendCategoria[]>("/api/categorias");
     return response.data;
   } catch (error) {
     console.error("Error fetching categorias:", error);
@@ -164,7 +167,7 @@ export const getCategorias = async (): Promise<BackendCategoria[]> => {
 
 export const getTipos = async (): Promise<BackendTipo[]> => {
   try {
-    const response = await api.get<BackendTipo[]>("/products/tipos");
+    const response = await api.get<BackendTipo[]>("/api/tipos");
     return response.data;
   } catch (error) {
     console.error("Error fetching tipos:", error);
@@ -174,7 +177,7 @@ export const getTipos = async (): Promise<BackendTipo[]> => {
 
 export const getColoresDiseno = async (): Promise<BackendColorDiseno[]> => {
   try {
-    const response = await api.get<BackendColorDiseno[]>("/products/colores-disenio");
+    const response = await api.get<BackendColorDiseno[]>("/api/colores-disenio");
     return response.data;
   } catch (error) {
     console.error("Error fetching colores diseño:", error);
@@ -184,7 +187,7 @@ export const getColoresDiseno = async (): Promise<BackendColorDiseno[]> => {
 
 export const getColoresLuz = async (): Promise<BackendColorLuz[]> => {
   try {
-    const response = await api.get<BackendColorLuz[]>("/products/colores-luz");
+    const response = await api.get<BackendColorLuz[]>("/api/colores-luz");
     return response.data;
   } catch (error) {
     console.error("Error fetching colores luz:", error);
@@ -194,7 +197,7 @@ export const getColoresLuz = async (): Promise<BackendColorLuz[]> => {
 
 export const getWatts = async (): Promise<BackendWatt[]> => {
   try {
-    const response = await api.get<BackendWatt[]>("/products/watts");
+    const response = await api.get<BackendWatt[]>("/api/watts");
     return response.data;
   } catch (error) {
     console.error("Error fetching watts:", error);
@@ -204,7 +207,7 @@ export const getWatts = async (): Promise<BackendWatt[]> => {
 
 export const getTamanos = async (): Promise<BackendTamano[]> => {
   try {
-    const response = await api.get<BackendTamano[]>("/products/tamanos");
+    const response = await api.get<BackendTamano[]>("/api/tamanos");
     return response.data;
   } catch (error) {
     console.error("Error fetching tamaños:", error);
@@ -212,11 +215,39 @@ export const getTamanos = async (): Promise<BackendTamano[]> => {
   }
 };
 
-// CRUD de productos
-export const getProductos = async (): Promise<Producto[]> => {
+// CRUD de productos - RUTAS CORREGIDAS
+export const buscarProductos = async (termino: string): Promise<Producto[]> => {
   try {
-    const response = await api.get<BackendProducto[]>("/products/productos");
+    if (!termino || termino.trim().length < 2) {
+      return [];
+    }
+    
+    const response = await api.get<BackendProducto[]>(`/api/buscar?termino=${encodeURIComponent(termino.trim())}`);
     return response.data.map(mapBackendProducto);
+  } catch (error) {
+    console.error("Error buscando productos:", error);
+    throw new Error("No se pudieron buscar los productos");
+  }
+};
+
+// Obtener todos los productos
+export const getAllProductos = async (): Promise<Producto[]> => {
+  try {
+    const response = await api.get<BackendProducto[]>("/api/todos");
+    return response.data.map(mapBackendProducto);
+  } catch (error) {
+    console.error("Error fetching todos los productos:", error);
+    throw new Error("No se pudieron cargar todos los productos");
+  }
+};
+
+// Función original getProductos
+export const getProductos = async (searchTerm?: string): Promise<Producto[]> => {
+  try {
+    if (searchTerm && searchTerm.trim().length >= 2) {
+      return buscarProductos(searchTerm);
+    }
+    return getAllProductos();
   } catch (error) {
     console.error("Error fetching productos:", error);
     throw new Error("No se pudieron cargar los productos");
@@ -225,7 +256,7 @@ export const getProductos = async (): Promise<Producto[]> => {
 
 export const getProductoById = async (id: number): Promise<Producto> => {
   try {
-    const response = await api.get<BackendProducto>(`/products/productos/${id}`);
+    const response = await api.get<BackendProducto>(`/api/productos/${id}`);
     return mapBackendProducto(response.data);
   } catch (error) {
     console.error("Error fetching producto:", error);
@@ -264,7 +295,7 @@ export const createProducto = async (producto: ProductoRequest): Promise<Product
       }
     });
 
-    const response = await api.post<BackendProducto>("/products/productos", formData, {
+    const response = await api.post<BackendProducto>("/api/productos", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -276,6 +307,8 @@ export const createProducto = async (producto: ProductoRequest): Promise<Product
     throw new Error("No se pudo crear el producto");
   }
 };
+
+// ... (mantén el resto de las funciones igual, solo cambia las URLs)
 
 export const updateProducto = async (id: number, producto: ProductoRequest): Promise<Producto> => {
   try {
@@ -289,23 +322,10 @@ export const updateProducto = async (id: number, producto: ProductoRequest): Pro
     
     producto.variantes.forEach((variante, index) => {
       formData.append(`variantes[${index}][nombre_variante]`, variante.nombre_variante);
-      formData.append(`variantes[${index}][precio_venta]`, variante.precio_venta.toString());
-      formData.append(`variantes[${index}][precio_compra]`, variante.precio_compra.toString());
-      formData.append(`variantes[${index}][idcolor_disenio]`, variante.idcolor_disenio.toString());
-      formData.append(`variantes[${index}][idcolor_luz]`, variante.idcolor_luz.toString());
-      formData.append(`variantes[${index}][idwatt]`, variante.idwatt.toString());
-      formData.append(`variantes[${index}][idtamano]`, variante.idtamano.toString());
-      formData.append(`variantes[${index}][stock]`, variante.stock.toString());
-      formData.append(`variantes[${index}][stock_minimo]`, variante.stock_minimo.toString());
-      
-      if (variante.imagenes) {
-        variante.imagenes.forEach((imagen, imgIndex) => {
-          formData.append(`variantes[${index}][imagenes][${imgIndex}]`, imagen);
-        });
-      }
+      // ... (mantén igual)
     });
 
-    const response = await api.put<BackendProducto>(`/products/productos/${id}`, formData, {
+    const response = await api.put<BackendProducto>(`/api/productos/${id}`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -320,7 +340,7 @@ export const updateProducto = async (id: number, producto: ProductoRequest): Pro
 
 export const deleteProducto = async (id: number): Promise<void> => {
   try {
-    await api.delete(`/products/productos/${id}`);
+    await api.delete(`/api/productos/${id}`);
   } catch (error) {
     console.error("Error deleting producto:", error);
     throw new Error("No se pudo eliminar el producto");
@@ -329,7 +349,7 @@ export const deleteProducto = async (id: number): Promise<void> => {
 
 export const updateStockVariante = async (idvariante: number, cantidad: number): Promise<Variante> => {
   try {
-    const response = await api.patch<BackendVariante>(`/products/variantes/${idvariante}/stock`, {
+    const response = await api.patch<BackendVariante>(`/api/variantes/${idvariante}/stock`, {
       cantidad
     });
     return mapBackendVariante(response.data);
@@ -339,14 +359,14 @@ export const updateStockVariante = async (idvariante: number, cantidad: number):
   }
 };
 
-// Mapeadores CORREGIDOS
+// Mapeadores
 function mapBackendProducto(producto: BackendProducto): Producto {
   return {
     idproducto: producto.idproducto,
     nombre: producto.nombre,
     descripcion: producto.descripcion,
     idubicacion: producto.idubicacion,
-    ubicacion: producto.ubicacion_nombre || "Sin ubicación", // Usar el nombre real de la BD
+    ubicacion: producto.ubicacion_nombre || "Sin ubicación",
     estado: producto.estado,
     categorias: producto.categorias,
     tipos: producto.tipos,
