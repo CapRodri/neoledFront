@@ -40,7 +40,7 @@ export function CajaView() {
       try {
         setLoading(true);
         
-        // Obtener información del usuario actual (simulado)
+        // Obtener información del usuario actual
         const userInfo = await getCurrentUser();
         setUserRole(userInfo.rol);
         setCurrentUserId(userInfo.idusuario);
@@ -82,7 +82,7 @@ export function CajaView() {
     cargarDatos();
   }, []);
 
-  // Datos de ejemplo para demo
+  // Datos de ejemplo para demo (ahora con strings ISO)
   const getDatosEjemplo = (): TransaccionCaja[] => {
     return [
       {
@@ -91,7 +91,7 @@ export function CajaView() {
         tipo_movimiento: "Apertura",
         descripcion: "Apertura de caja",
         monto: 500.00,
-        fecha: new Date("2024-01-30T08:00:00"),
+        fecha: "2024-01-30T08:00:00.000Z",
         idusuario: 1,
         idventa: null,
         empleado: "Juan Pérez"
@@ -102,7 +102,7 @@ export function CajaView() {
         tipo_movimiento: "Ingreso",
         descripcion: "Venta de productos",
         monto: 250.50,
-        fecha: new Date("2024-01-30T10:30:00"),
+        fecha: "2024-01-30T10:30:00.000Z",
         idusuario: 1,
         idventa: 1,
         empleado: "Juan Pérez"
@@ -113,7 +113,7 @@ export function CajaView() {
         tipo_movimiento: "Egreso",
         descripcion: "Compra de suministros",
         monto: 80.00,
-        fecha: new Date("2024-01-30T11:15:00"),
+        fecha: "2024-01-30T11:15:00.000Z",
         idusuario: 2,
         idventa: null,
         empleado: "María García"
@@ -124,7 +124,7 @@ export function CajaView() {
         tipo_movimiento: "Ingreso",
         descripcion: "Venta de productos",
         monto: 120.75,
-        fecha: new Date("2024-01-30T14:20:00"),
+        fecha: "2024-01-30T14:20:00.000Z",
         idusuario: 3,
         idventa: 2,
         empleado: "Carlos López"
@@ -135,7 +135,7 @@ export function CajaView() {
         tipo_movimiento: "Egreso",
         descripcion: "Pago de servicios",
         monto: 150.00,
-        fecha: new Date("2024-01-30T15:45:00"),
+        fecha: "2024-01-30T15:45:00.000Z",
         idusuario: 1,
         idventa: null,
         empleado: "Juan Pérez"
@@ -146,12 +146,54 @@ export function CajaView() {
         tipo_movimiento: "Cierre",
         descripcion: "Cierre de caja",
         monto: 641.25,
-        fecha: new Date("2024-01-30T20:00:00"),
+        fecha: "2024-01-30T20:00:00.000Z",
         idusuario: 1,
         idventa: null,
         empleado: "Juan Pérez"
       }
     ];
+  };
+
+  // Función para convertir string/Date a Date
+  const toDate = (dateInput: string | Date): Date => {
+    return typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  };
+
+  // Función para formatear fecha UTC a formato español (manteniendo hora exacta)
+  const formatDateUTC = (dateInput: string | Date) => {
+    try {
+      const date = toDate(dateInput);
+      
+      // Extraer componentes UTC para mantener la hora exacta
+      const day = date.getUTCDate();
+      const month = date.getUTCMonth() + 1; // Los meses empiezan en 0
+      const year = date.getUTCFullYear();
+      
+      // Formato: 16/1/2024
+      return `${day}/${month}/${year}`;
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return typeof dateInput === 'string' ? dateInput.substring(0, 10) : dateInput.toString();
+    }
+  };
+
+  // Función para formatear hora UTC
+  const formatTimeUTC = (dateInput: string | Date) => {
+    try {
+      const date = toDate(dateInput);
+      
+      let hours = date.getUTCHours();
+      const minutes = date.getUTCMinutes();
+      
+      // Formatear con ceros iniciales si es necesario
+      const formattedHours = hours < 10 ? `0${hours}` : hours.toString();
+      const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes.toString();
+      
+      return `${formattedHours}:${formattedMinutes}`;
+    } catch (error) {
+      console.error("Error formatting time:", error);
+      return "";
+    }
   };
 
   // Filtrar movimientos
@@ -167,18 +209,19 @@ export function CajaView() {
         return false;
       }
 
+      const fechaMovimiento = toDate(movimiento.fecha);
+
       // Filtro por fecha específica
       if (fechaBusqueda) {
-        const fechaMovimiento = format(movimiento.fecha, "yyyy-MM-dd");
+        const fechaMovimientoStr = format(fechaMovimiento, "yyyy-MM-dd");
         const fechaSeleccionada = format(fechaBusqueda, "yyyy-MM-dd");
-        if (fechaMovimiento !== fechaSeleccionada) {
+        if (fechaMovimientoStr !== fechaSeleccionada) {
           return false;
         }
       }
 
       // Filtro por rango de fechas
       if (fechaInicio && fechaFin) {
-        const fechaMovimiento = movimiento.fecha;
         if (fechaMovimiento < fechaInicio || fechaMovimiento > fechaFin) {
           return false;
         }
@@ -196,8 +239,6 @@ export function CajaView() {
   const totalEgresos = movimientosFiltrados
     .filter(mov => mov.tipo_movimiento === "Egreso")
     .reduce((sum, mov) => sum + mov.monto, 0);
-
-  const saldoFiltrado = totalIngresos - totalEgresos;
 
   const limpiarFiltros = () => {
     setFechaBusqueda(undefined);
@@ -420,10 +461,10 @@ export function CajaView() {
                       <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-2 md:mb-0">
                         <div className="md:hidden font-semibold text-primary mb-1">Mov. #{movimiento.idtransaccion}</div>
                         <div className="font-medium">
-                          {format(movimiento.fecha, "dd/MM/yyyy", { locale: es })}
+                          {formatDateUTC(movimiento.fecha)}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {format(movimiento.fecha, "HH:mm", { locale: es })}
+                          {formatTimeUTC(movimiento.fecha)}
                         </div>
                       </TableCell>
                       <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-2 md:mb-0">

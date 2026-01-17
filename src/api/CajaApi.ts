@@ -21,7 +21,7 @@ export interface TransaccionCaja {
   tipo_movimiento: string;
   descripcion: string;
   monto: number;
-  fecha: Date;
+  fecha: string | Date;  // Cambiado a string | Date
   idusuario: number;
   idventa: number | null;
   empleado: string;
@@ -58,7 +58,7 @@ export const getTransaccionesCaja = async (): Promise<TransaccionCaja[]> => {
       tipo_movimiento: transaccion.tipo_movimiento,
       descripcion: transaccion.descripcion,
       monto: parseFloat(transaccion.monto),
-      fecha: new Date(transaccion.fecha),
+      fecha: transaccion.fecha,  // Mantener como string, no convertir a Date
       idusuario: transaccion.idusuario,
       idventa: transaccion.idventa,
       empleado: `${transaccion.nombres} ${transaccion.apellidos}`,
@@ -79,7 +79,7 @@ export const getTransaccionesCajaByUsuario = async (idusuario: number): Promise<
       tipo_movimiento: transaccion.tipo_movimiento,
       descripcion: transaccion.descripcion,
       monto: parseFloat(transaccion.monto),
-      fecha: new Date(transaccion.fecha),
+      fecha: transaccion.fecha,  // Mantener como string, no convertir a Date
       idusuario: transaccion.idusuario,
       idventa: transaccion.idventa,
       empleado: `${transaccion.nombres} ${transaccion.apellidos}`,
