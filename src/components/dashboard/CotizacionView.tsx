@@ -792,30 +792,33 @@ export function CotizacionView() {
           </div>
 
           <div className="space-y-6">
-            <div className="space-y-4">
-              <div className="text-center">
-                <img 
-                  src="/lovable-uploads/84af3e7f-9171-4c73-900f-9499a9673234.png" 
-                  alt="NEOLED Logo" 
-                  className="h-16 mx-auto"
-                  onError={(e) => {
-                    e.currentTarget.src = "https://via.placeholder.com/128x64/f3f4f6/000000?text=NEOLED+Logo";
-                  }}
-                />
-              </div>
+            <div className="flex justify-end">
+              <div className="space-y-4 text-right">
+                <div className="text-rigth">
+                  <img 
+                    src="/lovable-uploads/84af3e7f-9171-4c73-900f-9499a9673234.png" 
+                    alt="NEOLED Logo" 
+                    className="h-16 mx-auto"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://via.placeholder.com/128x64/f3f4f6/000000?text=NEOLED+Logo";
+                    }}
+                  />
+                </div>
 
-              <div className="text-center space-y-1">
-                <p className="text-sm text-gray-800 font-medium">
-                  Av. Heroinas esq. Hamiraya #316
-                </p>
-                <div className="flex items-center justify-center gap-2">
-                  <WhatsappIcon className="w-5 h-5 text-green-600" />
-                  <span className="text-sm text-gray-800 font-medium">
-                    77918672 - 77950297
-                  </span>
+                <div className="text-right space-y-1">
+                  <p className="text-sm text-gray-800 font-medium">
+                    Av. Heroinas esq. Hamiraya #316
+                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <WhatsappIcon className="w-5 h-5 text-green-600" />
+                    <span className="text-sm text-gray-800 font-medium">
+                          77918672 - 77950297
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
+
 
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-foreground">Productos Cotizados</h2>

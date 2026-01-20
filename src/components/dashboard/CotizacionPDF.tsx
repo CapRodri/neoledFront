@@ -191,7 +191,8 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
   `;
 
   // 5) Construir la cabecera con logo e información de contacto - ESTRUCTURA CORREGIDA
-  const cabeceraHTML = `
+const cabeceraHTML = `
+  <div style="display: flex; justify-content: flex-end; text-align: right;">
     <div class="cabecera-cotizacion">
       <img src="${logoUrl}" class="logo-cabecera" alt="NEOLED Logo" />
       <div class="info-contacto">
@@ -202,7 +203,9 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
         </div>
       </div>
     </div>
-  `;
+  </div>
+`;
+
 
   wrapper.appendChild(style);
 
