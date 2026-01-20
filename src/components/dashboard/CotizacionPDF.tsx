@@ -42,7 +42,7 @@ export interface GeneratePDFParams {
  */
 const WhatsappIconSVG = ({ className = "whatsapp-svg", color = "#25D366" }) => `
   <svg class="${className}" viewBox="0 0 24 24" fill="${color}" style="display: block; flex-shrink: 0; transform: translateY(2px);">
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893c0-3.189-1.248-6.189-3.515-8.464"/>
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.87 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893c0-3.189-1.248-6.189-3.515-8.464"/>
   </svg>
 `;
 
@@ -65,6 +65,10 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
     logoUrl = "/lovable-uploads/84af3e7f-9171-4c73-900f-9499a9673234.png",
     fileName = "cotizacion.pdf"
   } = params;
+
+  // Calcular abono y saldo
+  const abono = 0; // Siemmostrar abono 0
+  const saldo = totalFinal; // Siempre mostrar saldo igual al total
 
   // 1) Crear el contenedor offscreen
   const wrapper = document.createElement("div");
@@ -89,7 +93,7 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
     .card { border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden; margin-bottom: 14px; }
     .table { width: 100%; border-collapse: collapse; font-size: 12px; color: #0f3b43; }
     .table th, .table td { padding: 12px 10px; border-bottom: 1px solid #e6edf0; vertical-align: top; }
-    .table thead th { background: #ffffff; font-weight: 700; text-align: left; color: #0f5560; }
+    .table thead th { background: #f9fafb; font-weight: 700; text-align: left; color: #0f5560; }
     .desc-cell { font-size: 13px; color: #2f6b71; }
     .items-table th { text-align: left; }
     .items-table .qty { text-align: center; width: 80px; }
@@ -110,16 +114,31 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
     .product-name { font-weight: 600; color: #0f3b43; margin:0 0 6px; }
     .product-meta { font-size: 12px; color:#6b7880; margin:0; }
     
-    /* Nuevos estilos para la cabecera */
-    .cabecera-cotizacion { text-align: center; margin-bottom: 24px; }
-    .logo-cabecera { height: 64px; object-fit: contain; display: block; margin: 0 auto 12px; }
-    .info-contacto { text-align: center; margin-bottom: 16px; }
+    /* Estilos para la cabecera - logo a la derecha */
+    .cabecera-cotizacion { text-align: right; margin-bottom: 24px; margin-left: auto; }
+    .logo-cabecera { height: 64px; object-fit: contain; display: block; margin-left: auto; margin-bottom: 12px; }
+    .info-contacto { text-align: right; margin-bottom: 16px; }
     .direccion { font-size: 13px; color: #000; font-weight: 500; margin-bottom: 8px; }
-    .whatsapp-info { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 8px; }
-    .whatsapp-svg { width: 18px; height: 18px; display: block; flex-shrink: 0; position: relative; z-index: 1; }
-    .telefonos { font-size: 13px; color: #000; font-weight: 500; line-height: 1; position: relative; }
+    .whatsapp-info { display: flex; align-items: center; justify-content: flex-end; gap: 6px; margin-bottom: 8px; }
+    .whatsapp-svg { width: 18px; height: 18px; display: block; flex-shrink: 0; }
+    .telefonos { font-size: 13px; color: #000; font-weight: 500; line-height: 1; }
     .no-plomo { font-size: 14px; color: #000; font-weight: bold; margin-top: 4px; }
     .titulo-productos { font-size: 18px; font-weight: 700; color: #0f5560; margin: 0; text-align: left; }
+    
+    /* Estilos para resumen integrado en tabla */
+    .resumen-table { width: 100%; border-collapse: collapse; margin-top: 0; }
+    .resumen-row { border-bottom: 1px solid #e5e7eb; }
+    .resumen-label { background: #f9fafb; font-weight: 600; color: #0f5560; padding: 10px 12px; }
+    .resumen-value { text-align: right; padding: 10px 12px; background: #f9fafb; }
+    .resumen-total { background: #f9fafb; font-weight: 700; color: #0f5560; padding: 10px 12px; }
+    .resumen-total-value { text-align: right; padding: 10px 12px; background: #f9fafb; font-weight: 700; }
+    .resumen-abono-label { background: #f9fafb; font-weight: 600; color: #0f5560; padding: 10px 12px; }
+    .resumen-abono-value { text-align: right; padding: 10px 12px; background: #f9fafb; color: #137f46; font-weight: 600; }
+    .resumen-saldo-label { background: #f9fafb; font-weight: 600; color: #0f5560; padding: 10px 12px; }
+    .resumen-saldo-value { text-align: right; padding: 10px 12px; background: #f9fafb; color: #c84b00; font-weight: 600; }
+    .separator-row { border-top: 2px solid #d1d5db; }
+    .descuento-label { background: #ffffff; font-weight: 600; color: #dc2626; padding: 10px 12px; }
+    .descuento-value { text-align: right; padding: 10px 12px; background: #ffffff; color: #dc2626; font-weight: 600; }
     
     @media print {
       .btn-print { display: none; }
@@ -154,10 +173,10 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
     </div>
 
     <div class="card">
-      <table class="table items-table" style="width:100%;">
+      <table class="table items-table" style="width:100%; border-bottom: none;">
         <thead>
           <tr>
-            <th colspan="3">Descripción</th>
+            <th colspan="3">Producto</th>
             <th class="qty">Cantidad</th>
             <th class="unit">Valor Unitario</th>
             <th class="total">Valor Total</th>
@@ -165,47 +184,73 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
         </thead>
         <tbody>
           ${items.map(itemRowHtml).join("")}
+          
+          <!-- Fila de Subtotal - Integrada en la tabla -->
+          <tr class="resumen-row">
+            <td colspan="3" class="resumen-label">Subtotal</td>
+            <td class="qty"></td>
+            <td class="unit"></td>
+            <td class="total resumen-value">Bs ${formatNumber(subtotal)}</td>
+          </tr>
+          
+          <!-- Fila de Descuento - Solo si hay descuento -->
+          ${descuentoTotal > 0 ? `
+            <tr class="resumen-row">
+              <td colspan="3" class="descuento-label">Descuento</td>
+              <td class="qty"></td>
+              <td class="unit"></td>
+              <td class="total descuento-value">-Bs ${formatNumber(descuentoTotal)}</td>
+            </tr>
+          ` : ''}
+          
+          <!-- Fila de Total - Integrada en la tabla -->
+          <tr class="resumen-row">
+            <td colspan="3" class="resumen-total">Total</td>
+            <td class="qty"></td>
+            <td class="unit"></td>
+            <td class="total resumen-total-value">Bs ${formatNumber(totalFinal)}</td>
+          </tr>
+          
+          <!-- Línea de separación -->
+          <tr class="separator-row">
+            <td colspan="6" style="border-top: 2px solid #d1d5db; padding: 4px 0;"></td>
+          </tr>
+          
+          <!-- Fila de Abono - Integrada en la tabla -->
+          <tr class="resumen-row">
+            <td colspan="3" class="resumen-abono-label">Abono</td>
+            <td class="qty"></td>
+            <td class="unit"></td>
+            <td class="total resumen-abono-value">Bs ${formatNumber(abono)}</td>
+          </tr>
+          
+          <!-- Fila de Saldo - Integrada en la tabla -->
+          <tr class="resumen-row">
+            <td colspan="3" class="resumen-saldo-label">Saldo</td>
+            <td class="qty"></td>
+            <td class="unit"></td>
+            <td class="total resumen-saldo-value">Bs ${formatNumber(saldo)}</td>
+          </tr>
         </tbody>
       </table>
     </div>
   `;
 
-  // 4) Construir el resumen de pagos - SOLO mostrar descuento si es mayor a 0
-  let descuentoHTML = '';
-  if (descuentoTotal > 0) {
-    descuentoHTML = `
-      <div class="summary-row"><span class="small">Descuento Total:</span><span class="small" style="color:#d33c3c;">-Bs ${formatNumber(descuentoTotal)}</span></div>
-    `;
-  }
-
-  const rightHTML = `
-    <div class="summary">
-      <div class="title">Resumen de Pagos</div>
-      <div class="summary-row"><span class="small">Subtotal:</span><span class="small">Bs ${formatNumber(subtotal)}</span></div>
-      ${descuentoHTML}
-      <hr style="border:none;border-top:1px solid #e6edf0;margin:8px 0;">
-      <div class="summary-row"><span class="small">Total:</span><span class="total">Bs ${formatNumber(totalFinal)}</span></div>
-      <div class="summary-row"><span class="small">Abono:</span><span class="abono">Bs ${formatNumber(0)}</span></div>
-      <div class="summary-row"><span class="small">Saldo:</span><span class="saldo">Bs ${formatNumber(totalFinal)}</span></div>
-    </div>
-  `;
-
-  // 5) Construir la cabecera con logo e información de contacto - ESTRUCTURA CORREGIDA
-const cabeceraHTML = `
-  <div style="display: flex; justify-content: flex-end; text-align: right;">
-    <div class="cabecera-cotizacion">
-      <img src="${logoUrl}" class="logo-cabecera" alt="NEOLED Logo" />
-      <div class="info-contacto">
-        <p class="direccion">Av. Heroinas esq. Hamiraya #316</p>
-        <div class="whatsapp-info">
-          ${WhatsappIconSVG({ className: "whatsapp-svg", color: "#25D366" })}
-          <span class="telefonos">77918672 - 77950297</span>
+  // 4) Construir la cabecera con logo a la derecha
+  const cabeceraHTML = `
+    <div style="display: flex; justify-content: flex-end; align-items: flex-start; margin-bottom: 20px;">
+      <div class="cabecera-cotizacion">
+        <img src="${logoUrl}" class="logo-cabecera" alt="NEOLED Logo" />
+        <div class="info-contacto">
+          <p class="direccion">Av. Heroinas esq. Hamiraya #316</p>
+          <div class="whatsapp-info">
+            ${WhatsappIconSVG({ className: "whatsapp-svg", color: "#25D366" })}
+            <span class="telefonos">77918672 - 77950297</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-`;
-
+  `;
 
   wrapper.appendChild(style);
 
@@ -213,19 +258,15 @@ const cabeceraHTML = `
     <div class="pdf-container">
       ${cabeceraHTML}
       
-      <div style="display:flex; align-items:flex-start; gap: 16px;">
+      <div style="display:flex; align-items:flex-start; gap: 16px; margin-bottom: 16px;">
         <div style="flex:1;">
           <h2 class="titulo-productos">Productos Cotizados</h2>
         </div>
-        <div style="width:320px;"></div>
       </div>
 
-      <div class="flex" style="margin-top:8px;">
+      <div style="margin-top:8px;">
         <div class="left">
           ${leftHTML}
-        </div>
-        <div class="right">
-          ${rightHTML}
         </div>
       </div>
     </div>
@@ -233,7 +274,7 @@ const cabeceraHTML = `
 
   document.body.appendChild(wrapper);
 
-  // 6) Renderizar a canvas con html2canvas
+  // 5) Renderizar a canvas con html2canvas
   try {
     // html2canvas opciones para mejor calidad
     const node = wrapper;
@@ -247,7 +288,7 @@ const cabeceraHTML = `
       windowHeight: node.scrollHeight
     });
 
-    // 7) Pasar a jsPDF
+    // 6) Pasar a jsPDF
     const imgData = canvas.toDataURL("image/png");
     // Tamaño de A4 en pt: 595.28 x 841.89 (portrait). Usamos landscape para que quepa mejor.
     const pdf = new jsPDF({

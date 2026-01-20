@@ -925,11 +925,12 @@ export function CotizacionView() {
               </Card>
             </div>
 
-            {/* Vista para desktop */}
+            {/* Vista para desktop - MODIFICADO: Resumen integrado en la misma tabla */}
             <div className="hidden md:block space-y-6">
               <Card>
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
+                    {/* Tabla de información del cliente */}
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -957,6 +958,7 @@ export function CotizacionView() {
                       </TableBody>
                     </Table>
 
+                    {/* Tabla de productos */}
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -979,46 +981,78 @@ export function CotizacionView() {
                             <TableCell className="text-right font-medium">Bs {formatBs(item.precio_venta * item.cantidad)}</TableCell>
                           </TableRow>
                         ))}
+
+                        {/* Fila de Subtotal - Integrada en la tabla */}
+                        <TableRow className="border-t-2">
+                          <TableCell colSpan={3} className="bg-gray-50 font-medium">
+                            Subtotal
+                          </TableCell>
+                          <TableCell className="text-center bg-gray-50"></TableCell>
+                          <TableCell className="text-right bg-gray-50"></TableCell>
+                          <TableCell className="text-right bg-gray-50 font-medium">
+                            Bs {formatBs(subtotal)}
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Fila de Descuento - Solo si hay descuento */}
+                        {descuentoTotal > 0 && (
+                          <TableRow>
+                            <TableCell colSpan={3} className="font-medium text-red-600">
+                              Descuento
+                            </TableCell>
+                            <TableCell className="text-center"></TableCell>
+                            <TableCell className="text-right"></TableCell>
+                            <TableCell className="text-right font-medium text-red-600">
+                              -Bs {formatBs(descuentoTotal)}
+                            </TableCell>
+                          </TableRow>
+                        )}
+
+                        {/* Fila de Total - Integrada en la tabla */}
+                        <TableRow className="border-t-2">
+                          <TableCell colSpan={3} className="bg-gray-50 font-bold">
+                            Total
+                          </TableCell>
+                          <TableCell className="text-center bg-gray-50"></TableCell>
+                          <TableCell className="text-right bg-gray-50"></TableCell>
+                          <TableCell className="text-right bg-gray-50 font-bold">
+                            Bs {formatBs(totalFinal)}
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Línea de separación */}
+                        <TableRow>
+                          <TableCell colSpan={6} className="border-t-2 border-gray-300 h-2"></TableCell>
+                        </TableRow>
+
+                        {/* Fila de Abono - Integrada en la tabla */}
+                        <TableRow>
+                          <TableCell colSpan={3} className="bg-gray-50 font-medium">
+                            Abono
+                          </TableCell>
+                          <TableCell className="text-center bg-gray-50"></TableCell>
+                          <TableCell className="text-right bg-gray-50"></TableCell>
+                          <TableCell className="text-right bg-gray-50 font-medium">
+                            Bs {formatBs(abono)}
+                          </TableCell>
+                        </TableRow>
+
+                        {/* Fila de Saldo - Integrada en la tabla */}
+                        <TableRow>
+                          <TableCell colSpan={3} className="bg-gray-50 font-medium">
+                            Saldo
+                          </TableCell>
+                          <TableCell className="text-center bg-gray-50"></TableCell>
+                          <TableCell className="text-right bg-gray-50"></TableCell>
+                          <TableCell className="text-right bg-gray-50 font-medium">
+                            Bs {formatBs(saldo)}
+                          </TableCell>
+                        </TableRow>
                       </TableBody>
                     </Table>
                   </div>
                 </CardContent>
               </Card>
-
-              <div className="flex justify-end">
-                <div className="w-80">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Resumen de Pagos</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Subtotal:</span>
-                          <span className="font-medium">Bs {formatBs(subtotal)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Descuento Total:</span>
-                          <span className="font-medium text-red-600">-Bs {formatBs(descuentoTotal)}</span>
-                        </div>
-                        <hr />
-                        <div className="flex justify-between items-center">
-                          <span className="text-lg font-bold">Total:</span>
-                          <span className="text-lg font-bold text-primary">Bs {formatBs(totalFinal)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Abono:</span>
-                          <span className="font-bold text-green-600">Bs {formatBs(abono)}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">Saldo:</span>
-                          <span className="font-bold text-orange-600">Bs {formatBs(saldo)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
             </div>
           </div>
         </div>
