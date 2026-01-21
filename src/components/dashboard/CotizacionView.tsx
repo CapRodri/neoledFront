@@ -15,12 +15,12 @@ import { downloadCotizacionAsPDF } from "./cotizacionPdfUtils";
 import { getProductos, searchProductos, createCotizacion, getCotizaciones, getCotizacionById, deleteCotizacion, searchCotizaciones, Producto, Variante, CotizacionRequest, Cotizacion, DetalleCotizacion } from "@/api/CotizacionApi";
 
 const WhatsappIcon = ({ className = "w-4 h-4" }) => (
-  <svg 
-    className={className} 
-    viewBox="0 0 24 24" 
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
     fill="currentColor"
   >
-    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893c0-3.189-1.248-6.189-3.515-8.464"/>
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893c0-3.189-1.248-6.189-3.515-8.464" />
   </svg>
 );
 
@@ -79,8 +79,8 @@ const formatBs = (value: number) => {
 };
 
 // Error Boundary para capturar errores
-class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
-  constructor(props: {children: React.ReactNode}) {
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -99,8 +99,8 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
         <div className="p-4 text-center">
           <h2 className="text-lg font-semibold text-red-600">Algo salió mal</h2>
           <p className="text-gray-600 mt-2">Por favor, recarga la página</p>
-          <Button 
-            onClick={() => window.location.reload()} 
+          <Button
+            onClick={() => window.location.reload()}
             className="mt-4"
           >
             Recargar Página
@@ -142,7 +142,7 @@ export function CotizacionView() {
   const [loadingCotizaciones, setLoadingCotizaciones] = useState(false);
   const [alert, setAlert] = useState<AlertState>({ show: false, title: "", message: "" });
   const { toast } = useToast();
-  
+
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastSearchQueryRef = useRef<string>("");
   const isSearchingRef = useRef<boolean>(false);
@@ -184,14 +184,14 @@ export function CotizacionView() {
   // MÉTODO DE BÚSQUEDA
   const performSearch = async (query: string) => {
     if (isSearchingRef.current) return;
-    
+
     isSearchingRef.current = true;
     setLoading(true);
-    
+
     try {
       const results = await searchProductos(query);
       setSearchResults(results);
-      
+
       // Mantener el foco después de la búsqueda
       setTimeout(() => {
         if (searchInputRef.current) {
@@ -202,7 +202,7 @@ export function CotizacionView() {
           }
         }
       }, 10);
-      
+
     } catch (error) {
       console.error("Error searching products:", error);
       toast({
@@ -221,7 +221,7 @@ export function CotizacionView() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    
+
     if (searchInputRef.current) {
       const currentPosition = e.target.selectionStart;
       setTimeout(() => {
@@ -247,7 +247,7 @@ export function CotizacionView() {
 
   const toggleProductExpansion = useCallback((productId: number) => {
     setExpandedProduct(prev => prev === productId ? null : productId);
-    
+
     setTimeout(() => {
       if (searchInputRef.current) {
         searchInputRef.current.focus();
@@ -266,7 +266,7 @@ export function CotizacionView() {
     };
 
     setCotizacionItems(prevItems => {
-      const existingIndex = prevItems.findIndex(item => 
+      const existingIndex = prevItems.findIndex(item =>
         item.id === variante.id && item.color_disenio === variante.color_disenio
       );
 
@@ -282,14 +282,14 @@ export function CotizacionView() {
     setSearchQuery("");
     setSearchResults([]);
     setExpandedProduct(null);
-    
+
     setTimeout(() => {
       if (searchInputRef.current) {
         searchInputRef.current.focus();
         searchInputRef.current.select();
       }
     }, 50);
-    
+
     toast({
       title: "Producto agregado",
       description: `${formatProductName(product.nombre, variante.color_disenio)} agregado a la cotización`,
@@ -298,9 +298,9 @@ export function CotizacionView() {
 
   // ACTUALIZAR CANTIDAD - Función segura
   const actualizarCantidad = useCallback((uniqueId: string, nuevaCantidad: number) => {
-    setCotizacionItems(prevItems => 
-      prevItems.map(item => 
-        item.uniqueId === uniqueId 
+    setCotizacionItems(prevItems =>
+      prevItems.map(item =>
+        item.uniqueId === uniqueId
           ? { ...item, cantidad: Math.max(0, nuevaCantidad) }
           : item
       )
@@ -313,7 +313,7 @@ export function CotizacionView() {
       actualizarCantidad(uniqueId, 0);
       return;
     }
-    
+
     const nuevaCantidad = parseInt(cantidad);
     if (!isNaN(nuevaCantidad) && nuevaCantidad >= 0) {
       actualizarCantidad(uniqueId, nuevaCantidad);
@@ -340,7 +340,7 @@ export function CotizacionView() {
 
   // MODIFICADO: Siempre mostrar saldo igual al total
   const calcularPagos = useCallback(() => {
-    return { 
+    return {
       abono: 0,
       saldo: totalFinal
     };
@@ -352,9 +352,13 @@ export function CotizacionView() {
   const handleDownloadPDF = async () => {
     const itemsPDF: CotizacionItemPDF[] = cotizacionItems.map(item => ({
       id: item.id.toString(),
-      name: formatProductName(item.productoNombre, item.color_disenio),
+      name: `${item.productoNombre} - ${item.nombre_variante || item.color_disenio}`, // Modificado
+      productoNombre: item.productoNombre,
+      nombre_variante: item.nombre_variante || item.color_disenio,
       price: item.precio_venta,
-      cantidad: item.cantidad
+      cantidad: item.cantidad,
+      selectedColor: item.color_disenio,
+      stock: item.stock
     }));
 
     const datosClientePDF: DatosClientePDF = {
@@ -377,7 +381,6 @@ export function CotizacionView() {
       fileName: `Cotizacion_${(datosCliente.nombre || "cliente").replace(/[^a-zA-Z0-9]/g, "_")}.pdf`,
     });
   };
-
   const generarCotizacion = async () => {
     if (cotizacionItems.length === 0) {
       toast({
@@ -401,12 +404,12 @@ export function CotizacionView() {
     if (datosCliente.tipoPago !== "pago-adelantado") {
       requiredFields.push(datosCliente.vigencia.toString());
     }
-    
+
     if (requiredFields.some(field => !field)) {
       toast({
         title: "Error",
-        description: datosCliente.tipoPago === "pago-adelantado" 
-          ? "Debe completar nombre, teléfono y tipo de pago" 
+        description: datosCliente.tipoPago === "pago-adelantado"
+          ? "Debe completar nombre, teléfono y tipo de pago"
           : "Debe completar nombre, teléfono, tipo de pago y vigencia",
         variant: "destructive"
       });
@@ -417,7 +420,7 @@ export function CotizacionView() {
     if (datosCliente.tipoPago !== "contra-entrega") {
       try {
         setLoading(true);
-        
+
         let tipoPagoBackend: "Pago por Adelantado" | "Mitad de Pago" | "Contra Entrega";
 
         if (datosCliente.tipoPago === "pago-adelantado") {
@@ -438,7 +441,7 @@ export function CotizacionView() {
           descuento: descuentoTotal,
           total: totalFinal,
           abono: 0,
-          saldo: totalFinal, 
+          saldo: totalFinal,
           items: cotizacionItems.map(item => ({
             idvariante: item.id,
             cantidad: item.cantidad,
@@ -448,19 +451,19 @@ export function CotizacionView() {
         };
 
         await createCotizacion(cotizacionRequest);
-        
+
         let mensajeAlerta = "";
         if (datosCliente.tipoPago === "pago-adelantado") {
           mensajeAlerta = "Recuerde registrar el PAGO COMPLETO y los PRODUCTOS ENTREGADOS en la sección de Pagos Pendientes";
         } else if (datosCliente.tipoPago === "mitad-adelanto") {
           mensajeAlerta = "Recuerde registrar el PAGO PARCIAL y los PRODUCTOS ENTREGADOS en la sección de Pagos Pendientes";
         }
-        
+
         toast({
           title: "Cotización guardada",
           description: "La cotización ha sido guardada",
         });
-        
+
         if (datosCliente.tipoPago === "pago-adelantado" || datosCliente.tipoPago === "mitad-adelanto") {
           setAlert({
             show: true,
@@ -468,7 +471,7 @@ export function CotizacionView() {
             message: mensajeAlerta
           });
         }
-        
+
       } catch (error) {
         console.error("Error saving quotation:", error);
         toast({
@@ -501,7 +504,7 @@ export function CotizacionView() {
       descuento: 0
     });
     setCotizacionGenerada(false);
-    
+
     setTimeout(() => {
       if (searchInputRef.current) {
         searchInputRef.current.focus();
@@ -512,7 +515,7 @@ export function CotizacionView() {
   // Funciones para buscar y cargar cotizaciones existentes
   const buscarCotizacionesPorCliente = async (query?: string) => {
     const searchTerm = query || searchCotizacionQuery;
-    
+
     if (!searchTerm.trim()) {
       setCotizacionesExistentes([]);
       return;
@@ -528,7 +531,7 @@ export function CotizacionView() {
         fecha_creacion: cot.fecha_creacion,
         total: cot.total
       }));
-      
+
       setCotizacionesExistentes(cotizacionesFiltradas);
     } catch (error) {
       console.error("Error searching quotations:", error);
@@ -547,7 +550,7 @@ export function CotizacionView() {
     setLoading(true);
     try {
       const { cotizacion, detalles } = await getCotizacionById(idcotizacion);
-      
+
       // Mapear los detalles a items de cotización
       const items: CotizacionItem[] = detalles.map(detalle => ({
         id: detalle.idvariante,
@@ -599,7 +602,7 @@ export function CotizacionView() {
       setCotizacionGenerada(true);
       setShowCotizacionesDialog(false);
       setSearchCotizacionQuery("");
-      
+
       toast({
         title: "Cotización cargada",
         description: `Se cargó la cotización de ${cotizacion.cliente_nombre}`,
@@ -623,11 +626,11 @@ export function CotizacionView() {
 
     try {
       await deleteCotizacion(idcotizacion);
-      
-      setCotizacionesExistentes(prev => 
+
+      setCotizacionesExistentes(prev =>
         prev.filter(cot => cot.idcotizacion !== idcotizacion)
       );
-      
+
       toast({
         title: "Cotización eliminada",
         description: "La cotización ha sido eliminada correctamente",
@@ -688,14 +691,14 @@ export function CotizacionView() {
       <ErrorBoundary>
         <div className="space-y-6 p-4">
           <AlertModal />
-          
+
           {/* Área de impresión (oculta en vista normal) */}
           <div id="cotizacion-print" className="hidden">
             <div className="p-6">
               <div className="text-center mb-6">
-                <img 
-                  src="/lovable-uploads/84af3e7f-9171-4c73-900f-9499a9673234.png" 
-                  alt="NEOLED Logo" 
+                <img
+                  src="/lovable-uploads/84af3e7f-9171-4c73-900f-9499a9673234.png"
+                  alt="NEOLED Logo"
                   className="h-20 mx-auto mb-4"
                   onError={(e) => {
                     e.currentTarget.src = "https://via.placeholder.com/160x80/f3f4f6/000000?text=NEOLED+Logo";
@@ -712,7 +715,7 @@ export function CotizacionView() {
                 </div>
                 <div>
                   <p><strong>Dirección:</strong> {datosCliente.direccion}</p>
-                  <p><strong>Tipo de Pago:</strong> 
+                  <p><strong>Tipo de Pago:</strong>
                     {datosCliente.tipoPago === "contra-entrega" && " Contra Entrega"}
                     {datosCliente.tipoPago === "pago-adelantado" && " Pago por Adelantado"}
                     {datosCliente.tipoPago === "mitad-adelanto" && " Mitad de Adelanto"}
@@ -782,7 +785,7 @@ export function CotizacionView() {
               </div>
             </div>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 no-print">
             <h1 className="text-2xl font-bold text-primary flex items-center gap-2">
               <FileText className="h-6 w-6" />
@@ -803,9 +806,9 @@ export function CotizacionView() {
             <div className="flex justify-end">
               <div className="space-y-4 text-right">
                 <div className="text-rigth">
-                  <img 
-                    src="/lovable-uploads/84af3e7f-9171-4c73-900f-9499a9673234.png" 
-                    alt="NEOLED Logo" 
+                  <img
+                    src="/lovable-uploads/84af3e7f-9171-4c73-900f-9499a9673234.png"
+                    alt="NEOLED Logo"
                     className="h-16 mx-auto"
                     onError={(e) => {
                       e.currentTarget.src = "https://via.placeholder.com/128x64/f3f4f6/000000?text=NEOLED+Logo";
@@ -820,7 +823,7 @@ export function CotizacionView() {
                   <div className="flex items-center justify-center gap-2">
                     <WhatsappIcon className="w-5 h-5 text-green-600" />
                     <span className="text-sm text-gray-800 font-medium">
-                          77918672 - 77950297
+                      77918672 - 77950297
                     </span>
                   </div>
                 </div>
@@ -880,7 +883,10 @@ export function CotizacionView() {
                   {cotizacionItems.map((item) => (
                     <div key={item.uniqueId} className="border rounded-lg p-3 space-y-2">
                       <div>
-                        <h4 className="font-semibold text-sm">{formatProductName(item.productoNombre, item.color_disenio)}</h4>
+                        {/* CAMBIO 1: Mostrar productoNombre - nombre_variante */}
+                        <h4 className="font-bold text-base break-words whitespace-normal leading-tight">
+                          {item.productoNombre} - {item.nombre_variante || item.color_disenio}
+                        </h4>
                         <p className="text-xs text-muted-foreground">{item.productoDescripcion}</p>
                       </div>
                       <div className="grid grid-cols-2 gap-2 text-sm">
@@ -981,7 +987,10 @@ export function CotizacionView() {
                           <TableRow key={item.uniqueId}>
                             <TableCell colSpan={3}>
                               <div>
-                                <p className="font-medium">{formatProductName(item.productoNombre, item.color_disenio)}</p>
+                                {/* CAMBIO 2: Mostrar productoNombre - nombre_variante en desktop */}
+                                <p className="font-bold text-base">
+                                  {item.productoNombre} - {item.nombre_variante || item.color_disenio}
+                                </p>
                               </div>
                             </TableCell>
                             <TableCell className="text-center">{item.cantidad}</TableCell>
@@ -1072,17 +1081,17 @@ export function CotizacionView() {
     <ErrorBoundary>
       <div className="space-y-6 p-4">
         <AlertModal />
-        
+
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-2">
             <FileText className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold text-primary">Generar Cotización</h1>
           </div>
-          
+
           <Dialog open={showCotizacionesDialog} onOpenChange={setShowCotizacionesDialog}>
             <DialogTrigger asChild>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="flex items-center gap-2 w-full sm:w-auto"
                 onClick={handleOpenCotizacionesDialog}
               >
@@ -1097,7 +1106,7 @@ export function CotizacionView() {
                   Escriba para buscar cotizaciones por nombre de cliente o teléfono
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="flex gap-2 mb-4">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -1128,8 +1137,8 @@ export function CotizacionView() {
                         <div className="flex-1">
                           <h4 className="font-semibold">{cotizacion.cliente_nombre}</h4>
                           <p className="text-sm text-muted-foreground">
-                            Teléfono: {cotizacion.cliente_telefono} | 
-                            Fecha: {new Date(cotizacion.fecha_creacion).toLocaleDateString('es-BO')} | 
+                            Teléfono: {cotizacion.cliente_telefono} |
+                            Fecha: {new Date(cotizacion.fecha_creacion).toLocaleDateString('es-BO')} |
                             Total: Bs {formatBs(cotizacion.total)}
                           </p>
                         </div>
@@ -1191,7 +1200,7 @@ export function CotizacionView() {
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {searchResults.map((product) => (
                     <div key={product.id} className="border rounded-lg p-4 space-y-3">
-                      <div 
+                      <div
                         className="flex items-center justify-between cursor-pointer"
                         onClick={() => toggleProductExpansion(product.id)}
                         onMouseDown={(e) => e.preventDefault()}
@@ -1226,8 +1235,8 @@ export function CotizacionView() {
                             </div>
                           </div>
                         </div>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onMouseDown={(e) => e.preventDefault()}
                         >
@@ -1245,8 +1254,8 @@ export function CotizacionView() {
                             Seleccione una variante:
                           </p>
                           {product.variantes.map((variant) => (
-                            <div 
-                              key={`${variant.id}-${variant.color_disenio}`} 
+                            <div
+                              key={`${variant.id}-${variant.color_disenio}`}
                               className="flex items-center gap-3 p-2 border rounded"
                               onMouseDown={(e) => e.preventDefault()}
                             >
@@ -1276,7 +1285,13 @@ export function CotizacionView() {
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="flex flex-wrap gap-1 mb-1">
+                                {/* CAMBIO 3: nombre_variante en negrita y tamaño grande al inicio */}
+                                <p className="text-base font-bold mb-2 text-gray-800 line-clamp-2">
+                                  {variant.nombre_variante}
+                                </p>
+
+                                {/* Luego mostrar las badges con las características */}
+                                <div className="flex flex-wrap gap-1 mb-2">
                                   {variant.color_disenio && variant.color_disenio !== "General" && (
                                     <Badge variant="secondary" className="text-xs">
                                       {variant.color_disenio}
@@ -1298,11 +1313,10 @@ export function CotizacionView() {
                                     </Badge>
                                   )}
                                 </div>
+
+                                {/* Finalmente el precio y stock */}
                                 <p className="text-xs font-medium">
                                   Bs {formatBs(variant.precio_venta)} | Stock: {variant.stock}
-                                </p>
-                                <p className="text-xs text-muted-foreground break-words whitespace-normal leading-tight">
-                                  {variant.nombre_variante}
                                 </p>
                               </div>
                               <Button
@@ -1397,15 +1411,16 @@ export function CotizacionView() {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <h5 className="font-medium text-sm break-words whitespace-normal leading-tight">
-                            {formatProductName(item.productoNombre, item.color_disenio)}
+                          {/* CAMBIO 4: Mostrar productoNombre - nombre_variante en negrita y tamaño grande */}
+                          <h5 className="font-bold text-base break-words whitespace-normal leading-tight">
+                            {item.productoNombre} - {item.nombre_variante || item.color_disenio}
                           </h5>
                           <p className="text-sm font-medium text-green-600 mt-1">
                             Bs {formatBs(item.precio_venta)} c/u
                           </p>
                         </div>
                       </div>
-                      
+
                       {/* Segunda fila: Controles y total */}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -1435,7 +1450,7 @@ export function CotizacionView() {
                             <Plus className="h-3 w-3" />
                           </Button>
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-bold whitespace-nowrap">
                             Bs {formatBs(item.precio_venta * item.cantidad)}
@@ -1460,7 +1475,7 @@ export function CotizacionView() {
                   <span>Subtotal:</span>
                   <span>Bs {formatBs(subtotal)}</span>
                 </div>
-                
+
                 <div className="flex items-center gap-2 flex-wrap">
                   <Label htmlFor="descuento" className="text-sm whitespace-nowrap">Descuento (monto Bs):</Label>
                   <Input
@@ -1479,7 +1494,7 @@ export function CotizacionView() {
                   />
                   <span className="text-sm whitespace-nowrap">-Bs {formatBs(datosCliente.descuento)}</span>
                 </div>
-                
+
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total:</span>
                   <span>Bs {formatBs(totalFinal)}</span>
@@ -1558,14 +1573,14 @@ export function CotizacionView() {
               )}
 
               <div className="flex items-end md:col-span-1 lg:col-span-1">
-                <Button 
-                  onClick={generarCotizacion} 
+                <Button
+                  onClick={generarCotizacion}
                   className="w-full"
                   disabled={cotizacionItems.length === 0 || loading || tieneItemsInvalidos}
                 >
-                  {loading ? "Generando..." : 
-                   tieneItemsInvalidos ? "Cantidades inválidas" : 
-                   "Generar Cotización"}
+                  {loading ? "Generando..." :
+                    tieneItemsInvalidos ? "Cantidades inválidas" :
+                      "Generar Cotización"}
                 </Button>
               </div>
             </div>
@@ -1574,4 +1589,4 @@ export function CotizacionView() {
       </div>
     </ErrorBoundary>
   );
-}
+} 

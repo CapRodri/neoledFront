@@ -15,6 +15,8 @@ export interface CotizacionItemPDF {
   price: number;
   cantidad: number;
   images?: string[];
+  productoNombre?: string; // NUEVO: nombre del producto
+  nombre_variante?: string; // NUEVO: nombre completo de la variante
 }
 
 export interface DatosClientePDF {
@@ -114,8 +116,8 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
     .left { flex: 1 1 auto; }
     .right { width: 320px; }
     .small { font-size: 12px; color: #0f3b43; }
-    .product-name { font-weight: 600; color: #0f3b43; margin:0 0 6px; }
-    .product-meta { font-size: 12px; color:#6b7880; margin:0; }
+    .product-name { font-weight: 600; color: #0f3b43; margin:0 0 6px; font-size: 13px; }
+    .product-meta { font-size: 11px; color:#6b7880; margin:0; }
     
     /* Estilos para la cabecera - logo a la derecha */
     .cabecera-cotizacion { text-align: right; margin-bottom: 24px; margin-left: auto; }
@@ -241,7 +243,7 @@ export async function generateCotizacionPDF(params: GeneratePDFParams): Promise<
           </tr>
         </thead>
         <tbody>
-          ${items.map(itemRowHtml).join("")}
+          ${items.map(item => itemRowHtml(item)).join("")}
           
           ${resumenHTML}
         </tbody>
@@ -363,52 +365,23 @@ function formatTipoPago(tp?: string) {
 function itemRowHtml(item: CotizacionItemPDF) {
   const total = (item.price || 0) * (item.cantidad || 0);
   
-  // Construir metadatos de forma condicional - VERSIÓN SIMPLIFICADA Y FUNCIONAL
-  const metadataParts: string[] = [];
+  // Construir el nombre: productoNombre - nombre_variante
+  let displayName = "";
   
-  // Función auxiliar para validar y limpiar un campo
-  const getCleanField = (field?: string): string | null => {
-    if (!field) return null;
-    const trimmed = field.trim();
-    if (trimmed === "" || trimmed.toLowerCase() === "null") {
-      return null;
-    }
-    return trimmed;
-  };
-  
-  // Procesar cada campo
-  const cleanColor = getCleanField(item.selectedColor);
-  const cleanCategory = getCleanField(item.category);
-  const cleanType = getCleanField(item.type);
-  
-  if (cleanColor) {
-    metadataParts.push(escapeHtml(cleanColor));
+  if (item.productoNombre && item.nombre_variante) {
+    displayName = `${escapeHtml(item.productoNombre)} - ${escapeHtml(item.nombre_variante)}`;
+  } else if (item.productoNombre && !item.nombre_variante && item.selectedColor) {
+    displayName = `${escapeHtml(item.productoNombre)} - ${escapeHtml(item.selectedColor)}`;
+  } else {
+    displayName = escapeHtml(item.name);
   }
   
-  if (cleanCategory) {
-    metadataParts.push(escapeHtml(cleanCategory));
-  }
-  
-  if (cleanType) {
-    metadataParts.push(escapeHtml(cleanType));
-  }
-  
-  // Agregar stock si existe
-  if (item.stock !== undefined && item.stock !== null) {
-    metadataParts.push(`Stock: ${escapeHtml(String(item.stock))}`);
-  }
-  
-  // Si hay metadatos, unirlos con " - "
-  const metadata = metadataParts.length > 0 
-    ? metadataParts.join(" - ") 
-    : "";
-  
+  // **SOLUCIÓN DEFINITIVA: Solo mostrar el nombre, sin metadatos ni stock**
   return `
     <tr>
       <td colspan="3">
         <div>
-          <p class="product-name">${escapeHtml(item.name)}</p>
-          ${metadata ? `<p class="product-meta">${metadata}</p>` : ''}
+          <p class="product-name">${displayName}</p>
         </div>
       </td>
       <td class="qty">${escapeHtml(String(item.cantidad))}</td>
