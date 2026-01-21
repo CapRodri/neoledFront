@@ -22,12 +22,26 @@ import {
   getSaldoActual
 } from "@/api/CajaApi";
 
-export function CajaView() {
-  // Configurar fecha actual por defecto
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+// Función para obtener la fecha actual en Bolivia (GMT-4)
+const getFechaBolivia = () => {
+  const now = new Date();
+  // Bolivia está en GMT-4, así que restamos 4 horas para obtener la hora boliviana
+  const boliviaOffset = -4 * 60; // -4 horas en minutos
+  const localOffset = now.getTimezoneOffset(); // offset local en minutos
+  const diff = boliviaOffset - localOffset; // diferencia en minutos
   
-  const [fechaBusqueda, setFechaBusqueda] = useState<Date | undefined>(today);
+  // Ajustar la fecha a la zona horaria de Bolivia
+  const fechaBolivia = new Date(now.getTime() + diff * 60000);
+  fechaBolivia.setHours(0, 0, 0, 0); // Inicio del día en Bolivia
+  
+  return fechaBolivia;
+};
+
+export function CajaView() {
+  // Configurar fecha actual de Bolivia por defecto (SOLO para la carga inicial)
+  const [fechaBoliviaHoy] = useState(() => getFechaBolivia());
+  
+  const [fechaBusqueda, setFechaBusqueda] = useState<Date | undefined>(fechaBoliviaHoy);
   const [fechaRangoTemp, setFechaRangoTemp] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
@@ -49,22 +63,24 @@ export function CajaView() {
   const [saldoActual, setSaldoActual] = useState<number>(0);
   const [estadoCaja, setEstadoCaja] = useState<string>("cerrada");
   const [error, setError] = useState<string>("");
+  const [datosCargados, setDatosCargados] = useState(false);
 
   // Cargar datos iniciales
   useEffect(() => {
     cargarDatosIniciales();
   }, []);
 
-  // Efecto para buscar datos cuando cambian los filtros
+  // Efecto para buscar datos cuando cambian los filtros O cuando se terminan de cargar los datos iniciales
   useEffect(() => {
-    if (!initialLoading) {
+    if (datosCargados) {
       buscarDatos();
     }
-  }, [fechaBusqueda, fechaRangoAplicado, filtroEmpleado]);
+  }, [fechaBusqueda, fechaRangoAplicado, filtroEmpleado, datosCargados]);
 
   const cargarDatosIniciales = async () => {
     try {
       setInitialLoading(true);
+      setDatosCargados(false);
       
       // Obtener información del usuario actual
       const userInfo = await getCurrentUser();
@@ -86,10 +102,12 @@ export function CajaView() {
         setFiltroEmpleado(`${userInfo.nombres} ${userInfo.apellidos}`);
       }
       
+      // Marcar que los datos iniciales están cargados
+      setDatosCargados(true);
+      
     } catch (error) {
       console.error("Error cargando datos de caja:", error);
       setError("Error al cargar datos iniciales");
-    } finally {
       setInitialLoading(false);
     }
   };
@@ -102,7 +120,7 @@ export function CajaView() {
       
       let datosFiltrados: TransaccionCaja[] = [];
       
-      // Formatear fechas como YYYY-MM-DD (sin ajustes de zona horaria)
+      // Formatear fechas como YYYY-MM-DD
       const fechaStr = fechaBusqueda ? format(fechaBusqueda, "yyyy-MM-dd") : "";
       
       if (userRole === "Admin") {
@@ -160,6 +178,7 @@ export function CajaView() {
       setMovimientosCaja([]);
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   };
 
@@ -208,9 +227,11 @@ export function CajaView() {
   // Calcular el saldo basado en los movimientos
   const saldoFiltrado = totalIngresos - totalEgresos;
 
-  // Limpiar filtros y volver a cargar datos del día actual
+  // Limpiar filtros y volver a cargar datos del día actual DE BOLIVIA
   const limpiarFiltros = async () => {
-    setFechaBusqueda(today);
+    // Usar la fecha de Bolivia actual
+    const hoyBolivia = getFechaBolivia();
+    setFechaBusqueda(hoyBolivia);
     setFechaRangoTemp({ from: undefined, to: undefined });
     setFechaRangoAplicado({ from: undefined, to: undefined });
     
@@ -224,7 +245,8 @@ export function CajaView() {
   // Manejar cambio en filtro de fecha específica
   const handleFechaBusquedaChange = async (date: Date | undefined) => {
     if (date) {
-      // Usar la fecha exacta como está (sin ajustes)
+      // Usar la fecha exacta como está (sin ajustes de zona horaria)
+      // El usuario selecciona la fecha que ve en el calendario
       setFechaBusqueda(date);
       // Limpiar completamente el rango
       setFechaRangoAplicado({ from: undefined, to: undefined });
