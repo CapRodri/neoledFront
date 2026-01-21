@@ -1,3 +1,4 @@
+// src/components/dashboard/VentasView.tsx
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
-import { CalendarIcon, Download, Calendar as CalendarRangeIcon, Printer } from "lucide-react";
+import { CalendarIcon, Download, Calendar as CalendarRangeIcon, Printer, Loader2, Check, X } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -24,13 +25,32 @@ interface UsuarioOption {
   username: string;
 }
 
-// Función para formatear fecha UTC
-const formatDateUTC = (dateInput: string | Date) => {
+// Función para obtener la fecha actual en Bolivia (GMT-4)
+const getFechaBolivia = () => {
+  const now = new Date();
+  // Bolivia está en GMT-4, así que restamos 4 horas para obtener la hora boliviana
+  const boliviaOffset = -4 * 60; // -4 horas en minutos
+  const localOffset = now.getTimezoneOffset(); // offset local en minutos
+  const diff = boliviaOffset - localOffset; // diferencia en minutos
+  
+  // Ajustar la fecha a la zona horaria de Bolivia
+  const fechaBolivia = new Date(now.getTime() + diff * 60000);
+  fechaBolivia.setHours(0, 0, 0, 0); // Inicio del día en Bolivia
+  
+  return fechaBolivia;
+};
+
+// Función para formatear fecha para mostrar (sin conversiones UTC)
+const formatDateForDisplay = (dateInput: string | Date) => {
   try {
+    // Si es string, convertir a Date
     const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    const day = date.getUTCDate();
-    const month = date.getUTCMonth() + 1;
-    const year = date.getUTCFullYear();
+    
+    // Extraer partes de la fecha LOCAL (como se seleccionó)
+    const day = date.getDate(); // Día local
+    const month = date.getMonth() + 1; // Mes local
+    const year = date.getFullYear(); // Año local
+    
     return `${day}/${month}/${year}`;
   } catch (error) {
     console.error("Error formatting date:", error);
@@ -38,12 +58,12 @@ const formatDateUTC = (dateInput: string | Date) => {
   }
 };
 
-// Función para formatear hora UTC
-const formatTimeUTC = (dateInput: string | Date) => {
+// Función para formatear hora para mostrar (sin conversiones UTC)
+const formatTimeForDisplay = (dateInput: string | Date) => {
   try {
     const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    let hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes();
+    const hours = date.getHours(); // Hora local
+    const minutes = date.getMinutes(); // Minutos local
     const formattedHours = hours < 10 ? `0${hours}` : hours.toString();
     const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes.toString();
     return `${formattedHours}:${formattedMinutes}`;
@@ -59,19 +79,37 @@ export function VentasView() {
   const username = currentUser?.usuario || "";
   const isAssistant = userRole === "Asistente";
   
+  // Configurar fecha actual de Bolivia por defecto
+  const [fechaBoliviaHoy] = useState(() => getFechaBolivia());
+  
   const [empleadosOptions, setEmpleadosOptions] = useState<UsuarioOption[]>([{ value: "Todos", label: "Todos", username: "" }]);
   const [ventasFiltradas, setVentasFiltradas] = useState<Venta[]>([]);
   const [totales, setTotales] = useState<TotalesVentas>({ totalGeneral: 0, totalEfectivo: 0, totalQR: 0 });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [datosCargados, setDatosCargados] = useState(false);
   
+  // Estados para filtros
   const [filtroEmpleado, setFiltroEmpleado] = useState("Todos");
   const [filtroMetodo, setFiltroMetodo] = useState("Todos");
-  const [fechaBusqueda, setFechaBusqueda] = useState<Date>();
-  const [fechaInicio, setFechaInicio] = useState<Date>();
-  const [fechaFin, setFechaFin] = useState<Date>();
+  
+  // Estados para fecha específica
+  const [fechaBusqueda, setFechaBusqueda] = useState<Date | undefined>(fechaBoliviaHoy);
   const [mostrarCalendario, setMostrarCalendario] = useState(false);
+  
+  // Estados para rango de fechas
+  const [fechaRangoTemp, setFechaRangoTemp] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [fechaRangoAplicado, setFechaRangoAplicado] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
   const [mostrarRango, setMostrarRango] = useState(false);
+  
+  // Estados para detalle de venta
   const [ventaSeleccionada, setVentaSeleccionada] = useState<Venta | null>(null);
   const [mostrarDetalle, setMostrarDetalle] = useState(false);
   const [mostrarAlerta, setMostrarAlerta] = useState(false);
@@ -79,97 +117,100 @@ export function VentasView() {
 
   // Cargar datos iniciales
   useEffect(() => {
-    const cargarDatosIniciales = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        if (!isAssistant) {
-          // Cargar usuarios para el filtro de empleados
-          const usuariosBackend: BackendUsuario[] = await getUsuariosVentas();
-          const opcionesUsuarios: UsuarioOption[] = usuariosBackend.map(user => ({
-            value: user.usuario, // Usamos el username como value
-            label: `${user.nombres} ${user.apellidos}`,
-            username: user.usuario
-          }));
-          setEmpleadosOptions([{ value: "Todos", label: "Todos", username: "" }, ...opcionesUsuarios]);
-        }
-
-        await cargarVentas();
-        await cargarTotales();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Error al cargar los datos");
-        console.error("Error cargando datos:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     cargarDatosIniciales();
   }, []);
 
-  // Cargar ventas cuando cambien los filtros
+  // Efecto para buscar datos cuando cambian los filtros O cuando se terminan de cargar los datos iniciales
   useEffect(() => {
-    if (!loading) {
-      cargarVentas();
-      cargarTotales();
+    if (datosCargados) {
+      buscarDatos();
     }
-  }, [filtroEmpleado, filtroMetodo, fechaBusqueda, fechaInicio, fechaFin]);
+  }, [filtroEmpleado, filtroMetodo, fechaBusqueda, fechaRangoAplicado, datosCargados]);
 
-  const cargarVentas = async () => {
+  const cargarDatosIniciales = async () => {
     try {
+      setInitialLoading(true);
+      setDatosCargados(false);
+      setError(null);
+
+      if (!isAssistant) {
+        // Cargar usuarios para el filtro de empleados
+        const usuariosBackend: BackendUsuario[] = await getUsuariosVentas();
+        const opcionesUsuarios: UsuarioOption[] = usuariosBackend.map(user => ({
+          value: user.usuario, // Usamos el username como value
+          label: `${user.nombres} ${user.apellidos}`,
+          username: user.usuario
+        }));
+        setEmpleadosOptions([{ value: "Todos", label: "Todos", username: "" }, ...opcionesUsuarios]);
+      } else {
+        setEmpleadosOptions([{ 
+          value: currentUser.usuario, 
+          label: `${currentUser.nombres} ${currentUser.apellidos}`, 
+          username: currentUser.usuario 
+        }]);
+        setFiltroEmpleado(currentUser.usuario);
+      }
+
+      // Marcar que los datos iniciales están cargados
+      setDatosCargados(true);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al cargar los datos");
+      console.error("Error cargando datos:", err);
+      setInitialLoading(false);
+    }
+  };
+
+  // Función principal para buscar datos con los filtros actuales
+  const buscarDatos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
       let ventas: Venta[] = [];
+      let totalesData: TotalesVentas = { totalGeneral: 0, totalEfectivo: 0, totalQR: 0 };
 
       if (isAssistant) {
-        // Para asistentes: solo sus ventas de hoy, sin filtros
+        // Para asistentes: solo sus ventas de hoy
         ventas = await getVentasHoyAsistente(username);
+        
+        // Calcular totales para asistentes
+        const totalGeneral = ventas.reduce((sum, venta) => sum + venta.total, 0);
+        const totalEfectivo = ventas.filter(v => v.metodo === "Efectivo").reduce((sum, venta) => sum + venta.total, 0);
+        const totalQR = ventas.filter(v => v.metodo === "QR").reduce((sum, venta) => sum + venta.total, 0);
+        totalesData = { totalGeneral, totalEfectivo, totalQR };
       } else {
         // Para admin: aplicar filtros normales
         const filtros: VentasFiltros = {
           empleado: filtroEmpleado !== "Todos" ? filtroEmpleado : undefined,
           metodo: filtroMetodo !== "Todos" ? filtroMetodo : undefined,
           fechaEspecifica: fechaBusqueda,
-          fechaInicio: fechaInicio,
-          fechaFin: fechaFin
+          fechaInicio: fechaRangoAplicado.from,
+          fechaFin: fechaRangoAplicado.to
         };
+        
+        console.log("Filtros enviados al backend:", {
+          empleado: filtros.empleado,
+          metodo: filtros.metodo,
+          fechaEspecifica: fechaBusqueda ? format(fechaBusqueda, "yyyy-MM-dd") : "null",
+          fechaInicio: fechaRangoAplicado.from ? format(fechaRangoAplicado.from, "yyyy-MM-dd") : "null",
+          fechaFin: fechaRangoAplicado.to ? format(fechaRangoAplicado.to, "yyyy-MM-dd") : "null"
+        });
+        
         ventas = await getVentas(filtros);
+        totalesData = await getTotalesVentas(filtros);
       }
 
       setVentasFiltradas(ventas);
+      setTotales(totalesData);
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al cargar las ventas");
       console.error("Error cargando ventas:", err);
-    }
-  };
-
-  const cargarTotales = async () => {
-    try {
-      if (isAssistant) {
-        // Para asistentes, los totales se calculan solo con sus ventas de hoy
-        const ventasHoy = await getVentasHoyAsistente(username);
-        const totalGeneral = ventasHoy.reduce((sum, venta) => sum + venta.total, 0);
-        const totalEfectivo = ventasHoy.filter(v => v.metodo === "Efectivo").reduce((sum, venta) => sum + venta.total, 0);
-        const totalQR = ventasHoy.filter(v => v.metodo === "QR").reduce((sum, venta) => sum + venta.total, 0);
-        
-        setTotales({ totalGeneral, totalEfectivo, totalQR });
-      } else {
-        const filtros: VentasFiltros = {
-          empleado: filtroEmpleado !== "Todos" ? filtroEmpleado : undefined,
-          metodo: filtroMetodo !== "Todos" ? filtroMetodo : undefined,
-          fechaEspecifica: fechaBusqueda,
-          fechaInicio: fechaInicio,
-          fechaFin: fechaFin
-        };
-        const totalesData = await getTotalesVentas(filtros);
-        setTotales(totalesData);
-      }
-    } catch (err) {
-      console.error("Error cargando totales:", err);
-      // Si hay error en totales, calcular localmente
-      const totalGeneral = ventasFiltradas.reduce((sum, venta) => sum + venta.total, 0);
-      const totalEfectivo = ventasFiltradas.filter(v => v.metodo === "Efectivo").reduce((sum, venta) => sum + venta.total, 0);
-      const totalQR = ventasFiltradas.filter(v => v.metodo === "QR").reduce((sum, venta) => sum + venta.total, 0);
-      setTotales({ totalGeneral, totalEfectivo, totalQR });
+      setVentasFiltradas([]);
+    } finally {
+      setLoading(false);
+      setInitialLoading(false);
     }
   };
 
@@ -179,11 +220,58 @@ export function VentasView() {
   };
 
   const limpiarFiltros = () => {
-    setFechaBusqueda(undefined);
-    setFechaInicio(undefined);
-    setFechaFin(undefined);
-    setFiltroEmpleado("Todos");
+    // Usar la fecha de Bolivia actual
+    const hoyBolivia = getFechaBolivia();
+    setFechaBusqueda(hoyBolivia);
+    setFechaRangoTemp({ from: undefined, to: undefined });
+    setFechaRangoAplicado({ from: undefined, to: undefined });
+    
+    if (userRole === "Admin") {
+      setFiltroEmpleado("Todos");
+    } else {
+      setFiltroEmpleado(currentUser.usuario);
+    }
+    
     setFiltroMetodo("Todos");
+  };
+
+  // Manejar cambio en filtro de fecha específica
+  const handleFechaBusquedaChange = async (date: Date | undefined) => {
+    if (date) {
+      // Usar la fecha exacta como está (sin ajustes de zona horaria)
+      setFechaBusqueda(date);
+      // Limpiar completamente el rango
+      setFechaRangoAplicado({ from: undefined, to: undefined });
+      setFechaRangoTemp({ from: undefined, to: undefined });
+      setMostrarCalendario(false);
+    }
+  };
+
+  // Manejar cambio temporal en filtro de rango de fechas
+  const handleRangoTempChange = (range: { from: Date | undefined; to: Date | undefined }) => {
+    setFechaRangoTemp(range);
+  };
+
+  // Aplicar rango seleccionado
+  const aplicarRangoFechas = async () => {
+    if (fechaRangoTemp.from && fechaRangoTemp.to) {
+      setFechaRangoAplicado({
+        from: fechaRangoTemp.from,
+        to: fechaRangoTemp.to
+      });
+      // Limpiar completamente la fecha específica
+      setFechaBusqueda(undefined);
+      setMostrarRango(false);
+    }
+  };
+
+  // Cancelar selección de rango
+  const cancelarRangoFechas = () => {
+    setFechaRangoTemp({
+      from: fechaRangoAplicado.from,
+      to: fechaRangoAplicado.to
+    });
+    setMostrarRango(false);
   };
 
   const abrirDetalleVenta = (venta: Venta) => {
@@ -208,18 +296,11 @@ export function VentasView() {
     }
   };
 
-  if (loading) {
+  if (initialLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-lg">Cargando ventas...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-red-500 text-lg">{error}</div>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Cargando datos de ventas...</span>
       </div>
     );
   }
@@ -233,6 +314,12 @@ export function VentasView() {
           Exportar PDF
         </Button>
       </div>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
 
       {/* Cards de totales */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -315,14 +402,10 @@ export function VentasView() {
                     <Calendar
                       mode="single"
                       selected={fechaBusqueda}
-                      onSelect={(date) => {
-                        setFechaBusqueda(date);
-                        setFechaInicio(undefined);
-                        setFechaFin(undefined);
-                        setMostrarCalendario(false);
-                      }}
+                      onSelect={handleFechaBusquedaChange}
                       initialFocus
                       className="p-3 pointer-events-auto"
+                      disabled={(date) => date > new Date()}
                     />
                   </PopoverContent>
                 </Popover>
@@ -334,40 +417,40 @@ export function VentasView() {
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-left font-normal">
                       <CalendarRangeIcon className="mr-2 h-4 w-4" />
-                      {fechaInicio && fechaFin ? 
-                        `${format(fechaInicio, "dd/MM", { locale: es })} - ${format(fechaFin, "dd/MM", { locale: es })}` : 
-                        "Rango"
+                      {fechaRangoAplicado.from && fechaRangoAplicado.to ? 
+                        `${format(fechaRangoAplicado.from, "dd/MM/yyyy", { locale: es })} - ${format(fechaRangoAplicado.to, "dd/MM/yyyy", { locale: es })}` : 
+                        "Seleccionar rango"
                       }
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0 max-w-[90vw]" align="start">
-                    <div className="p-4">
-                      <div className="flex flex-col sm:flex-row gap-4">
-                        <div>
-                          <label className="text-xs font-medium mb-2 block">Fecha Inicio</label>
-                          <Calendar
-                            mode="single"
-                            selected={fechaInicio}
-                            onSelect={(date) => {
-                              setFechaInicio(date);
-                              setFechaBusqueda(undefined);
-                            }}
-                            className="p-3 pointer-events-auto"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium mb-2 block">Fecha Fin</label>
-                          <Calendar
-                            mode="single"
-                            selected={fechaFin}
-                            onSelect={(date) => {
-                              setFechaFin(date);
-                              setFechaBusqueda(undefined);
-                              if (date) setMostrarRango(false);
-                            }}
-                            className="p-3 pointer-events-auto"
-                          />
-                        </div>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <div className="flex flex-col">
+                      <Calendar
+                        mode="range"
+                        selected={fechaRangoTemp}
+                        onSelect={handleRangoTempChange}
+                        numberOfMonths={1}
+                        className="p-3 pointer-events-auto"
+                        disabled={(date) => date > new Date()}
+                      />
+                      <div className="flex justify-end gap-2 p-3 border-t">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={cancelarRangoFechas}
+                          disabled={!fechaRangoTemp.from && !fechaRangoTemp.to}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={aplicarRangoFechas}
+                          disabled={!fechaRangoTemp.from || !fechaRangoTemp.to}
+                        >
+                          <Check className="h-4 w-4 mr-1" />
+                          Aplicar
+                        </Button>
                       </div>
                     </div>
                   </PopoverContent>
@@ -376,8 +459,40 @@ export function VentasView() {
 
               <div className="flex items-end">
                 <Button variant="outline" onClick={limpiarFiltros} className="w-full">
-                  Limpiar
+                  Limpiar Filtros
                 </Button>
+              </div>
+            </div>
+            
+            {/* Indicador de filtros activos */}
+            <div className="mt-4 pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Filtros activos:
+                {fechaBusqueda && (
+                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                    Fecha: {format(fechaBusqueda, "dd/MM/yyyy", { locale: es })}
+                  </span>
+                )}
+                {fechaRangoAplicado.from && fechaRangoAplicado.to && (
+                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                    Rango: {format(fechaRangoAplicado.from, "dd/MM/yyyy", { locale: es })} - {format(fechaRangoAplicado.to, "dd/MM/yyyy", { locale: es })}
+                  </span>
+                )}
+                {filtroEmpleado !== "Todos" && (
+                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                    Empleado: {empleadosOptions.find(e => e.value === filtroEmpleado)?.label}
+                  </span>
+                )}
+                {filtroMetodo !== "Todos" && (
+                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
+                    Método: {filtroMetodo}
+                  </span>
+                )}
+                {!fechaBusqueda && !fechaRangoAplicado.from && !fechaRangoAplicado.to && filtroEmpleado === "Todos" && filtroMetodo === "Todos" && (
+                  <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded">
+                    Ventas de hoy
+                  </span>
+                )}
               </div>
             </div>
           </CardContent>
@@ -390,7 +505,7 @@ export function VentasView() {
           <CardContent className="pt-6">
             <div className="text-center text-muted-foreground">
               <p className="text-lg font-medium">Mostrando tus ventas de hoy</p>
-              <p className="text-sm">{format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: es })}</p>
+              <p className="text-sm">{formatDateForDisplay(fechaBoliviaHoy)}</p>
               <p className="text-sm mt-2">Usuario: {currentUser?.nombres} {currentUser?.apellidos}</p>
             </div>
           </CardContent>
@@ -400,113 +515,135 @@ export function VentasView() {
       {/* Tabla de ventas */}
       <Card>
         <CardHeader>
-          <CardTitle>Registro de Ventas ({ventasFiltradas.length})</CardTitle>
+          <CardTitle>
+            Registro de Ventas 
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              ({ventasFiltradas.length} registros)
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="block md:overflow-x-auto">
-            <Table>
-              <TableHeader className="hidden md:table-header-group">
-                <TableRow>
-                  <TableHead className="w-[140px]">Fecha y Hora</TableHead>
-                  <TableHead className="w-[150px]">Usuario</TableHead>
-                  <TableHead className="min-w-[300px]">Descripción</TableHead>
-                  <TableHead className="w-[100px] text-right">Subtotal</TableHead>
-                  <TableHead className="w-[100px] text-right">Descuento</TableHead>
-                  <TableHead className="w-[130px] text-right">Total</TableHead>
-                  <TableHead className="w-[120px]">Método</TableHead>
-                  <TableHead className="w-[140px]">Impresión</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {ventasFiltradas.map((venta) => (
-                  <TableRow key={venta.id} className="md:table-row block border-b p-4 md:p-0">
-                    {/* Fecha y Hora */}
-                    <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
-                      <div className="font-medium">
-                        {formatDateUTC(venta.fecha)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {formatTimeUTC(venta.fecha)}
-                      </div>
-                    </TableCell>
-                    
-                    {/* Usuario */}
-                    <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
-                      <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">USUARIO</div>
-                      <div className="font-medium">
-                        {venta.usuario}
-                      </div>
-                    </TableCell>
-                    
-                    {/* Descripción */}
-                    <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
-                      <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">DESCRIPCIÓN</div>
-                      <div className="text-sm leading-relaxed">
-                        {venta.descripcion}
-                      </div>
-                    </TableCell>
-                    
-                    {/* Subtotal */}
-                    <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
-                      <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">SUBTOTAL</div>
-                      <div className="text-right md:text-right">
-                        Bs {venta.subtotal.toFixed(2)}
-                      </div>
-                    </TableCell>
-                    
-                    {/* Descuento */}
-                    <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
-                      <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">DESCUENTO</div>
-                      <div className="text-right md:text-right">
-                        Bs {venta.descuento.toFixed(2)}
-                      </div>
-                    </TableCell>
-                    
-                    {/* Total - Con más espacio */}
-                    <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0 font-medium">
-                      <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">TOTAL</div>
-                      <div className="text-lg font-bold text-primary text-right md:text-right md:pr-4">
-                        Bs {venta.total.toFixed(2)}
-                      </div>
-                    </TableCell>
-                    
-                    {/* Método de Pago - Con más espacio */}
-                    <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
-                      <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">MÉTODO</div>
-                      <div className="flex justify-start md:justify-start md:pl-4">
-                        <Badge variant={venta.metodo === "Efectivo" ? "default" : "secondary"}>
-                          {venta.metodo}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    
-                    {/* Impresión */}
-                    <TableCell className="md:table-cell block md:border-0 border-0 p-0">
-                      <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">IMPRESIÓN</div>
-                      <div className="flex justify-start md:justify-start">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => abrirDetalleVenta(venta)}
-                          className="flex items-center gap-2"
-                        >
-                          <Printer className="h-4 w-4" />
-                          <span className="hidden sm:inline">Imprimir</span>
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {ventasFiltradas.length === 0 && (
+          {loading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+              <span>Cargando ventas...</span>
+            </div>
+          ) : (
+            <div className="block md:overflow-x-auto">
+              <Table>
+                <TableHeader className="hidden md:table-header-group">
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      No se encontraron ventas con los filtros aplicados
-                    </TableCell>
+                    <TableHead className="w-[140px]">Fecha y Hora</TableHead>
+                    <TableHead className="w-[150px]">Usuario</TableHead>
+                    <TableHead className="min-w-[300px]">Descripción</TableHead>
+                    <TableHead className="w-[100px] text-right">Subtotal</TableHead>
+                    <TableHead className="w-[100px] text-right">Descuento</TableHead>
+                    <TableHead className="w-[130px] text-right">Total</TableHead>
+                    <TableHead className="w-[120px]">Método</TableHead>
+                    <TableHead className="w-[140px]">Impresión</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {ventasFiltradas.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <div className="flex flex-col items-center">
+                          <p className="text-muted-foreground mb-2">No se encontraron ventas</p>
+                          <p className="text-sm text-muted-foreground">
+                            {fechaBusqueda && `Para la fecha: ${format(fechaBusqueda, "dd/MM/yyyy", { locale: es })}`}
+                            {fechaRangoAplicado.from && fechaRangoAplicado.to && 
+                              `En el rango: ${format(fechaRangoAplicado.from, "dd/MM/yyyy", { locale: es })} - ${format(fechaRangoAplicado.to, "dd/MM/yyyy", { locale: es })}`}
+                            {filtroEmpleado !== "Todos" && ` - Empleado: ${empleadosOptions.find(e => e.value === filtroEmpleado)?.label}`}
+                            {filtroMetodo !== "Todos" && ` - Método: ${filtroMetodo}`}
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    ventasFiltradas.map((venta) => (
+                      <TableRow key={venta.id} className="md:table-row block border-b p-4 md:p-0">
+                        {/* Fecha y Hora */}
+                        <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
+                          <div className="font-medium">
+                            {formatDateForDisplay(venta.fecha)}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {formatTimeForDisplay(venta.fecha)}
+                          </div>
+                        </TableCell>
+                        
+                        {/* Usuario */}
+                        <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
+                          <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">USUARIO</div>
+                          <div className="font-medium">
+                            {venta.usuario}
+                          </div>
+                        </TableCell>
+                        
+                        {/* Descripción */}
+                        <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
+                          <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">DESCRIPCIÓN</div>
+                          <div className="text-sm leading-relaxed">
+                            {venta.descripcion}
+                          </div>
+                        </TableCell>
+                        
+                        {/* Subtotal */}
+                        <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
+                          <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">SUBTOTAL</div>
+                          <div className="text-right md:text-right">
+                            Bs {venta.subtotal.toFixed(2)}
+                          </div>
+                        </TableCell>
+                        
+                        {/* Descuento */}
+                        <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
+                          <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">DESCUENTO</div>
+                          <div className="text-right md:text-right">
+                            Bs {venta.descuento.toFixed(2)}
+                          </div>
+                        </TableCell>
+                        
+                        {/* Total - Con más espacio */}
+                        <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0 font-medium">
+                          <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">TOTAL</div>
+                          <div className="text-lg font-bold text-primary text-right md:text-right md:pr-4">
+                            Bs {venta.total.toFixed(2)}
+                          </div>
+                        </TableCell>
+                        
+                        {/* Método de Pago - Con más espacio */}
+                        <TableCell className="md:table-cell block md:border-0 border-0 p-0 mb-3 md:mb-0">
+                          <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">MÉTODO</div>
+                          <div className="flex justify-start md:justify-start md:pl-4">
+                            <Badge variant={venta.metodo === "Efectivo" ? "default" : "secondary"}>
+                              {venta.metodo}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        
+                        {/* Impresión */}
+                        <TableCell className="md:table-cell block md:border-0 border-0 p-0">
+                          <div className="md:hidden text-xs font-medium text-muted-foreground mb-1">IMPRESIÓN</div>
+                          <div className="flex justify-start md:justify-start">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              onClick={() => abrirDetalleVenta(venta)}
+                              className="flex items-center gap-2"
+                            >
+                              <Printer className="h-4 w-4" />
+                              <span className="hidden sm:inline">Imprimir</span>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -544,7 +681,7 @@ export function VentasView() {
             {/* Información del cliente */}
             <div className="info-cliente space-y-2">
               <p><strong>Cliente:</strong> {nombreCliente || "No especificado"}</p>
-              <p><strong>Fecha:</strong> {ventaSeleccionada ? `${formatDateUTC(ventaSeleccionada.fecha)} ${formatTimeUTC(ventaSeleccionada.fecha)}` : ""}</p>
+              <p><strong>Fecha:</strong> {ventaSeleccionada ? `${formatDateForDisplay(ventaSeleccionada.fecha)} ${formatTimeForDisplay(ventaSeleccionada.fecha)}` : ""}</p>
               <p><strong>Dirección:</strong> Av. Heroinas esq. Hamiraya #316</p>
               <p><strong>Números:</strong> 77950297 - 77918672</p>
             </div>
