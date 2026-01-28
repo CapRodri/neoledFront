@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { getVentas, getTotalesVentas, getUsuariosVentas, getVentasHoyAsistente, Venta, VentasFiltros, TotalesVentas, BackendUsuario } from "@/api/VentasApi";
 import { getUserRole, getCurrentUser } from "@/api/AuthApi";
 import { generateVentaPDF } from "./VentasPDF";
+import { VentasTablaPDF } from "./VentasTablaPDF";
+import { pdf } from "@react-pdf/renderer";
 
 interface UsuarioOption {
   value: string;
@@ -73,6 +75,20 @@ const formatTimeForDisplay = (dateInput: string | Date) => {
   }
 };
 
+// Función auxiliar para descargar archivo
+const downloadPDF = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  
+  document.body.appendChild(link);
+  link.click();
+  
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 export function VentasView() {
   const currentUser = getCurrentUser();
   const userRole = getUserRole() || "admin";
@@ -89,6 +105,7 @@ export function VentasView() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [datosCargados, setDatosCargados] = useState(false);
+  const [generandoPDF, setGenerandoPDF] = useState(false);
   
   // Estados para filtros
   const [filtroEmpleado, setFiltroEmpleado] = useState("Todos");
@@ -137,7 +154,7 @@ export function VentasView() {
         // Cargar usuarios para el filtro de empleados
         const usuariosBackend: BackendUsuario[] = await getUsuariosVentas();
         const opcionesUsuarios: UsuarioOption[] = usuariosBackend.map(user => ({
-          value: user.usuario, // Usamos el username como value
+          value: user.usuario,
           label: `${user.nombres} ${user.apellidos}`,
           username: user.usuario
         }));
@@ -214,9 +231,62 @@ export function VentasView() {
     }
   };
 
-  const exportarPDF = () => {
-    // Simulación de exportación
-    alert("Exportando tabla a PDF...");
+  const handleExportarPDF = async () => {
+    try {
+      setGenerandoPDF(true);
+      
+      // Calcular nombre del archivo basado en filtros
+      let nombreArchivo = "reporte_ventas";
+      
+      if (fechaBusqueda) {
+        const fechaStr = format(fechaBusqueda, "dd-MM-yyyy");
+        nombreArchivo = `reporte_ventas_${fechaStr}`;
+      } else if (fechaRangoAplicado.from && fechaRangoAplicado.to) {
+        const fromStr = format(fechaRangoAplicado.from, "dd-MM-yyyy");
+        const toStr = format(fechaRangoAplicado.to, "dd-MM-yyyy");
+        nombreArchivo = `reporte_ventas_${fromStr}_a_${toStr}`;
+      }
+      
+      if (filtroEmpleado !== "Todos") {
+        const empleadoLabel = empleadosOptions.find(e => e.value === filtroEmpleado)?.label || filtroEmpleado;
+        nombreArchivo += `_${empleadoLabel.replace(/\s+/g, '_')}`;
+      }
+      
+      if (filtroMetodo !== "Todos") {
+        nombreArchivo += `_${filtroMetodo}`;
+      }
+      
+      nombreArchivo += ".pdf";
+      
+      // Crear el documento PDF
+      const pdfDocument = (
+        <VentasTablaPDF
+          ventas={ventasFiltradas}
+          filtros={{
+            fechaBusqueda,
+            fechaRango: fechaRangoAplicado,
+            filtroEmpleado,
+            filtroMetodo,
+            empleadosOptions,
+            userRole,
+            currentUserName: currentUser ? `${currentUser.nombres} ${currentUser.apellidos}` : "Usuario",
+          }}
+          totales={totales}
+        />
+      );
+      
+      // Generar el PDF como blob
+      const pdfBlob = await pdf(pdfDocument).toBlob();
+      
+      // Descargar el archivo
+      downloadPDF(pdfBlob, nombreArchivo);
+      
+    } catch (error) {
+      console.error("Error generando PDF:", error);
+      setError("Error al generar el PDF. Por favor, intente nuevamente.");
+    } finally {
+      setGenerandoPDF(false);
+    }
   };
 
   const limpiarFiltros = () => {
@@ -309,9 +379,22 @@ export function VentasView() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-primary">Historial de Ventas</h1>
-        <Button onClick={exportarPDF} className="flex items-center gap-2 w-full sm:w-auto">
-          <Download className="h-4 w-4" />
-          Exportar PDF
+        <Button 
+          onClick={handleExportarPDF} 
+          disabled={ventasFiltradas.length === 0 || generandoPDF}
+          className="flex items-center gap-2 w-full sm:w-auto"
+        >
+          {generandoPDF ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Generando PDF...
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4" />
+              Exportar PDF
+            </>
+          )}
         </Button>
       </div>
 
@@ -354,7 +437,7 @@ export function VentasView() {
       {/* Filtros - Solo para Admin */}
       {!isAssistant && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle>Filtros</CardTitle>
           </CardHeader>
           <CardContent>
