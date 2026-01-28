@@ -6,7 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CalendarIcon, CalendarRange as CalendarRangeIcon, Loader2, Check, X } from "lucide-react";
+import { CalendarIcon, CalendarRange as CalendarRangeIcon, Loader2, Check, X, Download } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { 
@@ -21,6 +21,8 @@ import {
   getCurrentUser,
   getSaldoActual
 } from "@/api/CajaApi";
+import { CajaPDF } from "./CajaPDF";
+import { pdf } from "@react-pdf/renderer";
 
 // Función para obtener la fecha actual en Bolivia (GMT-4)
 const getFechaBolivia = () => {
@@ -35,6 +37,23 @@ const getFechaBolivia = () => {
   fechaBolivia.setHours(0, 0, 0, 0); // Inicio del día en Bolivia
   
   return fechaBolivia;
+};
+
+// Función auxiliar para descargar archivo sin file-saver
+const downloadPDF = (blob: Blob, filename: string) => {
+  // Crear un enlace temporal
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  
+  // Agregar al documento y hacer clic
+  document.body.appendChild(link);
+  link.click();
+  
+  // Limpiar
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
 export function CajaView() {
@@ -64,6 +83,7 @@ export function CajaView() {
   const [estadoCaja, setEstadoCaja] = useState<string>("cerrada");
   const [error, setError] = useState<string>("");
   const [datosCargados, setDatosCargados] = useState(false);
+  const [generandoPDF, setGenerandoPDF] = useState(false);
 
   // Cargar datos iniciales
   useEffect(() => {
@@ -227,6 +247,65 @@ export function CajaView() {
   // Calcular el saldo basado en los movimientos
   const saldoFiltrado = totalIngresos - totalEgresos;
 
+  // Función para descargar el PDF sin file-saver
+  const handleDescargarPDF = async () => {
+    try {
+      setGenerandoPDF(true);
+      setError("");
+      
+      // Calcular nombre del archivo basado en filtros
+      let nombreArchivo = "reporte_caja";
+      
+      if (fechaBusqueda) {
+        const fechaStr = format(fechaBusqueda, "dd-MM-yyyy");
+        nombreArchivo = `reporte_caja_${fechaStr}`;
+      } else if (fechaRangoAplicado.from && fechaRangoAplicado.to) {
+        const fromStr = format(fechaRangoAplicado.from, "dd-MM-yyyy");
+        const toStr = format(fechaRangoAplicado.to, "dd-MM-yyyy");
+        nombreArchivo = `reporte_caja_${fromStr}_a_${toStr}`;
+      }
+      
+      if (filtroEmpleado !== "Todos") {
+        nombreArchivo += `_${filtroEmpleado.replace(/\s+/g, '_')}`;
+      }
+      
+      nombreArchivo += ".pdf";
+      
+      // Crear el documento PDF
+      const pdfDocument = (
+        <CajaPDF
+          movimientos={movimientosCaja}
+          filtros={{
+            fechaBusqueda,
+            fechaRango: fechaRangoAplicado,
+            filtroEmpleado,
+            userRole,
+            currentUserName,
+          }}
+          totales={{
+            ingresos: totalIngresos,
+            egresos: totalEgresos,
+            saldoFiltrado,
+            saldoActual,
+            estadoCaja,
+          }}
+        />
+      );
+      
+      // Generar el PDF como blob
+      const pdfBlob = await pdf(pdfDocument).toBlob();
+      
+      // Descargar el archivo usando función auxiliar
+      downloadPDF(pdfBlob, nombreArchivo);
+      
+    } catch (error) {
+      console.error("Error generando PDF:", error);
+      setError("Error al generar el PDF. Por favor, intente nuevamente.");
+    } finally {
+      setGenerandoPDF(false);
+    }
+  };
+
   // Limpiar filtros y volver a cargar datos del día actual DE BOLIVIA
   const limpiarFiltros = async () => {
     // Usar la fecha de Bolivia actual
@@ -365,8 +444,26 @@ export function CajaView() {
       {/* Filtros - Solo mostrar para Admin */}
       {userRole === "Admin" && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle>Filtros</CardTitle>
+            <Button 
+              onClick={handleDescargarPDF} 
+              disabled={movimientosCaja.length === 0 || generandoPDF}
+              className="ml-auto"
+              variant="default"
+            >
+              {generandoPDF ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generando PDF...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Descargar PDF
+                </>
+              )}
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
@@ -493,8 +590,26 @@ export function CajaView() {
       {/* Información para no-Admin */}
       {userRole !== "Admin" && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle>Mis Movimientos de Caja</CardTitle>
+            <Button 
+              onClick={handleDescargarPDF} 
+              disabled={movimientosCaja.length === 0 || generandoPDF}
+              className="ml-auto"
+              variant="default"
+            >
+              {generandoPDF ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generando PDF...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Descargar PDF
+                </>
+              )}
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap items-center justify-between gap-4">
